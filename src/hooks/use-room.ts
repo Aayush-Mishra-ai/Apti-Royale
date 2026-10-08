@@ -10,12 +10,13 @@ export type Room = {
   current_index: number;
   total_questions: number;
   question_seconds: number;
+  royale: boolean;
 };
-export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string };
+export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null };
 export type Question = NonNullable<Awaited<ReturnType<typeof getQuestion>>>;
 
 /** Live room + leaderboard via realtime; question payload fetched from the server referee. */
-export function useRoom(code: string, playerId?: string, pollAnswers = false) {
+export function useRoom(code: string, playerId?: string, pollAnswers = false, token?: string) {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
@@ -27,7 +28,7 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false) {
   const loadPlayers = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("players")
-      .select("id, name, score, correct_count, streak, created_at")
+      .select("id, name, score, correct_count, streak, created_at, eliminated_at")
       .eq("room_id", roomId)
       .order("score", { ascending: false })
       .order("created_at");
@@ -36,13 +37,13 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false) {
 
   const loadQuestion = useCallback(async () => {
     try {
-      const q = await fetchQ({ data: { code, playerId } });
+      const q = await fetchQ({ data: { code, playerId, token } });
       setQuestion(q);
       if (q) setClockOffset(new Date(q.serverNow).getTime() - Date.now());
     } catch {
       /* transient */
     }
-  }, [code, playerId, fetchQ]);
+  }, [code, playerId, token, fetchQ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,18 +86,18 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false) {
   return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion };
 }
 
-export function useCountdown(q: Question | null, clockOffset: number) {
+export function useCountdown(q: Question | null, clockOffset: number, extra = 0) {
   const key = q?.startedAt ?? null;
   const [state, setState] = useState<{ key: string | null; left: number }>({ key: null, left: 0 });
   useEffect(() => {
     if (!q?.startedAt) return;
-    const end = new Date(q.startedAt).getTime() + q.seconds * 1000;
+    const end = new Date(q.startedAt).getTime() + (q.seconds + extra) * 1000;
     const tick = () => setState({ key: q.startedAt, left: Math.max(0, (end - (Date.now() + clockOffset)) / 1000) });
     tick();
     const t = setInterval(tick, 100);
     return () => clearInterval(t);
-  }, [q?.startedAt, q?.seconds, clockOffset]);
+  }, [q?.startedAt, q?.seconds, clockOffset, extra]);
   // Until the first tick for this question, report the full duration (never a stale 0).
   if (!q) return 0;
-  return state.key === key ? state.left : q.seconds;
+  return state.key === key ? state.left : q.seconds + extra;
 }

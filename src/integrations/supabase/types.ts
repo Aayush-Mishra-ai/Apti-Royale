@@ -89,6 +89,7 @@ export type Database = {
         Row: {
           correct_count: number
           created_at: string
+          eliminated_at: number | null
           id: string
           name: string
           room_id: string
@@ -98,6 +99,7 @@ export type Database = {
         Insert: {
           correct_count?: number
           created_at?: string
+          eliminated_at?: number | null
           id?: string
           name: string
           room_id: string
@@ -107,6 +109,7 @@ export type Database = {
         Update: {
           correct_count?: number
           created_at?: string
+          eliminated_at?: number | null
           id?: string
           name?: string
           room_id?: string
@@ -119,6 +122,38 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      powerup_uses: {
+        Row: {
+          created_at: string
+          idx: number
+          kind: string
+          player_id: string
+          removed: number[]
+        }
+        Insert: {
+          created_at?: string
+          idx: number
+          kind: string
+          player_id: string
+          removed?: number[]
+        }
+        Update: {
+          created_at?: string
+          idx?: number
+          kind?: string
+          player_id?: string
+          removed?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "powerup_uses_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
             referencedColumns: ["id"]
           },
         ]
@@ -220,6 +255,7 @@ export type Database = {
           id: string
           question_seconds: number
           question_started_at: string | null
+          royale: boolean
           status: string
           total_questions: number
         }
@@ -230,6 +266,7 @@ export type Database = {
           id?: string
           question_seconds?: number
           question_started_at?: string | null
+          royale?: boolean
           status?: string
           total_questions?: number
         }
@@ -240,6 +277,7 @@ export type Database = {
           id?: string
           question_seconds?: number
           question_started_at?: string | null
+          royale?: boolean
           status?: string
           total_questions?: number
         }

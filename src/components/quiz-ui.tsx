@@ -83,16 +83,70 @@ export function Leaderboard({ players, highlightId, limit }: { players: Player[]
           key={p.id}
           className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
             p.id === highlightId ? "border-primary bg-primary/10" : "border-border bg-card"
-          }`}
+          } ${p.eliminated_at !== null ? "opacity-50" : ""}`}
         >
           <span className={`w-6 text-center font-mono text-sm ${i < 3 ? "text-primary" : "text-muted-foreground"}`}>
             {i === 0 ? <Trophy className="mx-auto h-4 w-4" /> : i + 1}
           </span>
           <span className="flex-1 truncate font-medium text-foreground">{p.name}</span>
+          {p.eliminated_at !== null && (
+            <span className="rounded bg-destructive/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-destructive">Out</span>
+          )}
           <span className="font-mono text-xs text-muted-foreground">{p.correct_count}✓</span>
           <span className="w-14 text-right font-mono font-semibold text-foreground">{p.score}</span>
         </li>
       ))}
     </ol>
+  );
+}
+
+export function EliminationScreen({
+  eliminated,
+  left,
+  highlightId,
+}: {
+  eliminated: Player[];
+  left: number;
+  highlightId?: string | undefined;
+}) {
+  const meOut = highlightId ? eliminated.some((p) => p.id === highlightId) : false;
+  return (
+    <section className="elim-screen relative mt-6 overflow-hidden rounded-3xl border border-destructive/40 bg-destructive/5 p-6 text-center" aria-live="assertive">
+      <div className="pointer-events-none absolute inset-0 elim-glow" />
+      <p className="relative font-mono text-xs uppercase tracking-[0.3em] text-destructive">Royale cut</p>
+      <h1 className="elim-title relative mt-2 font-display text-6xl leading-none tracking-wide text-destructive sm:text-8xl">
+        {highlightId ? (meOut ? "You're out" : "You survived") : "Eliminated"}
+      </h1>
+      <div className="relative mt-6 flex flex-wrap justify-center gap-2">
+        {eliminated.map((p, i) => (
+          <span
+            key={p.id}
+            style={{ animationDelay: `${300 + i * 150}ms` }}
+            className="elim-chip rounded-full border border-destructive/50 bg-background/60 px-3 py-1.5 text-sm font-semibold text-foreground line-through decoration-destructive decoration-2"
+          >
+            {p.name}
+          </span>
+        ))}
+      </div>
+      <div className="relative mt-8">
+        <p className="font-display text-7xl leading-none text-foreground">{left}</p>
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">Players left</p>
+      </div>
+      {meOut && <p className="relative mt-4 text-sm text-muted-foreground">You can keep watching as a spectator.</p>}
+    </section>
+  );
+}
+
+export function WinnerScreen({ name, score, isMe }: { name: string; score: number; isMe?: boolean }) {
+  return (
+    <section className="relative mt-6 overflow-hidden rounded-3xl border border-neon/40 bg-neon/5 p-8 text-center" aria-live="polite">
+      <div className="pointer-events-none absolute inset-0 hero-glow" />
+      <Trophy className="winner-pop relative mx-auto h-16 w-16 text-neon" />
+      <p className="relative mt-3 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">Last one standing</p>
+      <h1 className="winner-pop relative mt-1 font-display text-6xl leading-none text-glow-primary sm:text-8xl">
+        {isMe ? "You win!" : name}
+      </h1>
+      <p className="relative mt-3 font-mono text-lg text-neon">{score} pts</p>
+    </section>
   );
 }

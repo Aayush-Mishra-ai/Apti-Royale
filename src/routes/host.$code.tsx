@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
 import { nextQuestion, revealAnswer } from "@/lib/quiz.functions";
 import { useCountdown, useRoom } from "@/hooks/use-room";
-import { Leaderboard, OptionButton, QuestionHeader, TimerBar } from "@/components/quiz-ui";
+import { EliminationScreen, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 export const Route = createFileRoute("/host/$code")({
   head: ({ params }) => ({
@@ -26,7 +26,8 @@ function HostPage() {
   const [token, setToken] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const { room, players, question, clockOffset, error } = useRoom(code, undefined, true);
-  const left = useCountdown(room?.status === "question" ? question : null, clockOffset);
+  const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.hostExtraSeconds ?? 0);
+  const alive = players.filter((p) => p.eliminated_at === null);
   const next = useServerFn(nextQuestion);
   const reveal = useServerFn(revealAnswer);
   const [busy, setBusy] = useState(false);
@@ -51,12 +52,12 @@ function HostPage() {
   useEffect(() => {
     if (!room || !question || room.status !== "question" || !token) return;
     if (revealedFor.current === question.idx) return;
-    const allIn = players.length > 0 && question.answeredCount >= players.length;
+    const allIn = alive.length > 0 && question.answeredCount >= alive.length;
     if (left <= 0 || allIn) {
       revealedFor.current = question.idx;
       reveal({ data: { code, hostToken: token } });
     }
-  }, [left, question, players.length, room, token, code, reveal]);
+  }, [left, question, alive.length, room, token, code, reveal]);
 
   if (error) return <Centered>{error}</Centered>;
   if (checked && !token)
@@ -74,6 +75,12 @@ function HostPage() {
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Royale</span></Link>
+        {room.royale && room.status !== "lobby" && (
+          <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2" aria-live="polite">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Players left</span>
+            <span className="font-display text-3xl leading-none text-destructive">{alive.length}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2">
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Code</span>
           <span className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{code}</span>
@@ -89,6 +96,7 @@ function HostPage() {
             </p>
             <p className="mt-6 font-mono text-sm text-muted-foreground">
               {room.total_questions} questions · {room.question_seconds}s each · {players.length}/50 joined
+              {room.royale && <span className="ml-2 rounded bg-destructive/15 px-2 py-0.5 text-destructive">Royale mode</span>}
             </p>
             <button
               onClick={() => act(next)}
@@ -112,7 +120,7 @@ function HostPage() {
         <section className="mt-8 grid gap-8 md:grid-cols-[1.4fr_1fr]">
           <div className="space-y-5">
             {room.status === "question" ? (
-              <TimerBar left={left} total={question.seconds} />
+              <TimerBar left={left} total={question.seconds + question.hostExtraSeconds} />
             ) : (
               <p className="font-mono text-xs uppercase tracking-widest text-success">Answer revealed</p>
             )}
@@ -132,7 +140,7 @@ function HostPage() {
             {question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
             <div className="flex items-center justify-between">
               <span className="font-mono text-sm text-muted-foreground">
-                {question.answeredCount}/{players.length} answered
+                {question.answeredCount}/{alive.length} answered{question.hostExtraSeconds > 0 && room.status === "question" ? " · freeze active" : ""}
               </span>
               {room.status === "question" ? (
                 <button onClick={() => act(reveal)} disabled={busy} className="rounded-lg border border-border px-4 py-2 text-sm text-foreground hover:bg-accent">
@@ -156,10 +164,29 @@ function HostPage() {
         </section>
       )}
 
+      {room.status === "elimination" && (
+        <section className="mx-auto mt-6 max-w-2xl">
+          <EliminationScreen eliminated={players.filter((p) => p.eliminated_at === room.current_index)} left={alive.length} />
+          <button
+            onClick={() => act(next)}
+            disabled={busy}
+            className="mt-6 w-full rounded-xl bg-primary py-3.5 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Next question
+          </button>
+        </section>
+      )}
+
       {room.status === "finished" && (
         <section className="mx-auto mt-10 max-w-lg">
-          <h1 className="text-center text-3xl font-bold text-foreground">Final standings</h1>
-          {players[0] && <p className="mt-2 text-center text-primary">{players[0].name} wins with {players[0].score} pts</p>}
+          {room.royale && alive[0] ? (
+            <WinnerScreen name={alive[0].name} score={alive[0].score} />
+          ) : (
+            <>
+              <h1 className="text-center text-3xl font-bold text-foreground">Final standings</h1>
+              {players[0] && <p className="mt-2 text-center text-primary">{players[0].name} wins with {players[0].score} pts</p>}
+            </>
+          )}
           <div className="mt-6"><Leaderboard players={players} /></div>
           <Link to="/" className="mt-6 block text-center text-sm text-primary underline">Host another game</Link>
         </section>
