@@ -37,12 +37,16 @@ export const createRoom = createServerFn({ method: "POST" })
         seconds: z.number().int().min(10).max(60).default(20),
         count: z.number().int().min(5).max(20).default(10),
         royale: z.boolean().default(false),
+        category: z.enum(["mixed", "Quant", "Logical", "Verbal"]).default("mixed"),
+        teamSize: z.union([z.literal(1), z.literal(2), z.literal(4)]).default(1),
       })
       .parse(d)
   )
   .handler(async ({ data }) => {
     const db = await admin();
-    const { data: qs } = await db.from("questions").select("id");
+    let qq = db.from("questions").select("id");
+    if (data.category !== "mixed") qq = qq.eq("category", data.category);
+    const { data: qs } = await qq;
     const ids = (qs ?? []).map((q) => q.id).sort(() => Math.random() - 0.5).slice(0, data.count);
     if (ids.length === 0) throw new Error("No questions available");
 
@@ -50,7 +54,14 @@ export const createRoom = createServerFn({ method: "POST" })
     for (let i = 0; i < 5 && !room; i++) {
       const { data: r } = await db
         .from("rooms")
-        .insert({ code: makeCode(), question_seconds: data.seconds, total_questions: ids.length, royale: data.royale })
+        .insert({
+          code: makeCode(),
+          question_seconds: data.seconds,
+          total_questions: ids.length,
+          royale: data.royale,
+          category: data.category,
+          team_size: data.teamSize,
+        })
         .select("id, code")
         .maybeSingle();
       room = r;
@@ -72,9 +83,15 @@ export const joinRoom = createServerFn({ method: "POST" })
     const { count } = await db.from("players").select("id", { count: "exact", head: true }).eq("room_id", room.id);
     if ((count ?? 0) >= MAX_PLAYERS) throw new Error("Room is full (50 players).");
 
+    // Teams: round-robin players across Team A, Team B, … so squads stay balanced.
+    let team: string | null = null;
+    if (room.team_size > 1) {
+      const numTeams = Math.ceil(MAX_PLAYERS / room.team_size);
+      team = `Team ${String.fromCharCode(65 + ((count ?? 0) % numTeams))}`;
+    }
     const { data: player, error } = await db
       .from("players")
-      .insert({ room_id: room.id, name: data.name })
+      .insert({ room_id: room.id, name: data.name, team })
       .select("id")
       .maybeSingle();
     if (error || !player) throw new Error(error?.code === "23505" ? "That name is taken in this room." : "Could not join.");
@@ -82,6 +99,21 @@ export const joinRoom = createServerFn({ method: "POST" })
     await db.from("player_secrets").insert({ player_id: player.id, token });
     return { playerId: player.id, token };
   });
+
+/** When a game finishes, fold every player's result into the all-time world ranking. */
+async function recordWorld(db: Awaited<ReturnType<typeof admin>>, roomId: string) {
+  const { data: ps } = await db
+    .from("players")
+    .select("name, score")
+    .eq("room_id", roomId)
+    .order("score", { ascending: false })
+    .order("created_at");
+  if (!ps?.length) return;
+  const winner = ps[0]!.name;
+  for (const p of ps) {
+    await db.rpc("bump_world_ranking", { _name: p.name, _score: p.score, _won: p.name === winner });
+  }
+}
 
 /** Host advances: lobby/reveal -> next question, or finishes the game. */
 export const nextQuestion = createServerFn({ method: "POST" })
@@ -107,12 +139,14 @@ export const nextQuestion = createServerFn({ method: "POST" })
         .update({ status: left <= 1 ? "finished" : "elimination" })
         .eq("id", room.id)
         .eq("status", "reveal");
+      if (left <= 1) await recordWorld(db, room.id);
       return { ok: true };
     }
 
     const next = room.current_index + 1;
     if (next >= room.total_questions) {
       await db.from("rooms").update({ status: "finished" }).eq("id", room.id);
+      await recordWorld(db, room.id);
     } else {
       await db
         .from("rooms")
@@ -295,6 +329,18 @@ export const activatePowerup = createServerFn({ method: "POST" })
     if (error) throw new Error("You already used that power-up.");
     return { removed };
   });
+
+/** All-time world ranking across every game — public read. */
+export const getWorldRanking = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin();
+  const { data } = await db
+    .from("world_rankings")
+    .select("name, best_score, total_score, games, wins")
+    .order("total_score", { ascending: false })
+    .order("wins", { ascending: false })
+    .limit(20);
+  return data ?? [];
+});
 
 export const getReport = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ code: codeSchema, playerId: z.string().uuid(), token: z.string() }).parse(d))

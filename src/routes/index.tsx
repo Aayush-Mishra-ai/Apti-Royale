@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Users, Zap, ShieldCheck } from "lucide-react";
-import { createRoom } from "@/lib/quiz.functions";
+import { Loader2, Users, Zap, ShieldCheck, Trophy } from "lucide-react";
+import { createRoom, getWorldRanking } from "@/lib/quiz.functions";
 
 export const Route = createFileRoute("/")({
+  loader: () => getWorldRanking(),
   head: () => ({
     meta: [
       { title: "AptiRoyale — Live Multiplayer Aptitude Quiz" },
@@ -22,10 +23,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const world = Route.useLoaderData();
   const navigate = useNavigate();
   const create = useServerFn(createRoom);
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
+  const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal">("mixed");
+  const [teamSize, setTeamSize] = useState<1 | 2 | 4>(1);
   const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +38,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count, royale } });
+      const r = await create({ data: { seconds: 20, count, royale, category, teamSize } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
@@ -103,6 +107,28 @@ function Home() {
             <h2 className="mb-4 font-display text-2xl tracking-wide text-neon">Host Arena</h2>
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="qcat" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+                  Category
+                </label>
+                <select
+                  id="qcat"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as typeof category)}
+                  className="cursor-pointer bg-transparent font-bold text-neon outline-none"
+                >
+                  {[
+                    ["mixed", "Mixed"],
+                    ["Quant", "Quant"],
+                    ["Logical", "Logical"],
+                    ["Verbal", "Verbal"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v} className="bg-card text-foreground">
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
                 <label htmlFor="qcount" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
                   Questions
                 </label>
@@ -115,6 +141,27 @@ function Home() {
                   {[5, 10, 15, 20].map((n) => (
                     <option key={n} value={n} className="bg-card text-foreground">
                       {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="tmode" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+                  Teams
+                </label>
+                <select
+                  id="tmode"
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(Number(e.target.value) as 1 | 2 | 4)}
+                  className="cursor-pointer bg-transparent font-bold text-neon outline-none"
+                >
+                  {[
+                    [1, "Solo"],
+                    [2, "Duos"],
+                    [4, "Squads of 4"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v} className="bg-card text-foreground">
+                      {l}
                     </option>
                   ))}
                 </select>
@@ -157,6 +204,30 @@ function Home() {
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent/80">
               Server Referee Active
             </span>
+          </div>
+          {/* World ranking */}
+          <div className="col-span-2 rounded-3xl border border-border bg-card/60 p-5 backdrop-blur-xl">
+            <div className="mb-3 flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-accent" />
+              <h2 className="font-display text-xl tracking-wide text-foreground">World Ranking</h2>
+            </div>
+            {world.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No games finished yet — be the first on the board.</p>
+            ) : (
+              <ol className="flex flex-col gap-1.5">
+                {world.slice(0, 5).map((w, i) => (
+                  <li key={w.name} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="w-5 font-mono text-xs text-muted-foreground">#{i + 1}</span>
+                      <span className="font-semibold text-foreground">{w.name}</span>
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {w.total_score} pts · {w.wins}W/{w.games}G
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </div>
 

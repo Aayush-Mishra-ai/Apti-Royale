@@ -95,6 +95,7 @@ export type Database = {
           room_id: string
           score: number
           streak: number
+          team: string | null
         }
         Insert: {
           correct_count?: number
@@ -105,6 +106,7 @@ export type Database = {
           room_id: string
           score?: number
           streak?: number
+          team?: string | null
         }
         Update: {
           correct_count?: number
@@ -115,6 +117,7 @@ export type Database = {
           room_id?: string
           score?: number
           streak?: number
+          team?: string | null
         }
         Relationships: [
           {
@@ -249,6 +252,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          category: string
           code: string
           created_at: string
           current_index: number
@@ -257,9 +261,11 @@ export type Database = {
           question_started_at: string | null
           royale: boolean
           status: string
+          team_size: number
           total_questions: number
         }
         Insert: {
+          category?: string
           code: string
           created_at?: string
           current_index?: number
@@ -268,9 +274,11 @@ export type Database = {
           question_started_at?: string | null
           royale?: boolean
           status?: string
+          team_size?: number
           total_questions?: number
         }
         Update: {
+          category?: string
           code?: string
           created_at?: string
           current_index?: number
@@ -279,7 +287,35 @@ export type Database = {
           question_started_at?: string | null
           royale?: boolean
           status?: string
+          team_size?: number
           total_questions?: number
+        }
+        Relationships: []
+      }
+      world_rankings: {
+        Row: {
+          best_score: number
+          games: number
+          name: string
+          total_score: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          best_score?: number
+          games?: number
+          name: string
+          total_score?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          best_score?: number
+          games?: number
+          name?: string
+          total_score?: number
+          updated_at?: string
+          wins?: number
         }
         Relationships: []
       }
@@ -288,6 +324,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_world_ranking: {
+        Args: { _name: string; _score: number; _won: boolean }
+        Returns: undefined
+      }
       record_answer: {
         Args: {
           _choice: number
