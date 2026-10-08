@@ -102,7 +102,7 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
 }
 
 function Game({ code, session }: { code: string; session: Session }) {
-  const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
+  const { room, players, question, clockOffset, error, reloadQuestion, tickNow } = useRoom(code, session.playerId, false, session.token);
   const phaseLeft = usePhaseCountdown(room, clockOffset);
   const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze || (local.idx === question?.idx && local.used.includes("freeze")) ? FREEZE_SECONDS : 0);
@@ -158,6 +158,7 @@ function Game({ code, session }: { code: string; session: Session }) {
     setPicked(i);
     try {
       await submit({ data: { code, playerId: session.playerId, token: session.token, idx: question.idx, choice: i } });
+      void tickNow();
     } catch (e) {
       setSubmitErr(e instanceof Error ? e.message : "Answer not accepted.");
       reloadQuestion();

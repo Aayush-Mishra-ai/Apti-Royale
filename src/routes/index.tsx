@@ -64,7 +64,8 @@ function Home() {
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       const p = await join({ data: { code: r.code, name } });
       localStorage.setItem(`aptiroyale:player:${r.code}`, JSON.stringify({ ...p, name }));
-      await start({ data: { code: r.code, hostToken: r.hostToken } });
+      // Start in the background so the game screen opens instantly.
+      void start({ data: { code: r.code, hostToken: r.hostToken } }).catch(() => {});
       navigate({ to: "/play/$code", params: { code: r.code } });
     } catch (e) {
       setSoloError(e instanceof Error ? e.message : "Could not start the game.");

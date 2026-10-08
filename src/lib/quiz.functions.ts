@@ -188,7 +188,16 @@ export const nextQuestion = createServerFn({ method: "POST" })
     const room = await getRoomByCode(data.code);
     await assertHost(room.id, data.hostToken);
     if (room.auto_control && room.status !== "lobby") return { ok: true };
-    if (room.auto_control) await prepareReviews(room.id);
+    if (room.auto_control) {
+      // Open question 1 immediately; AI reviews are only needed at the first reveal (~23s later).
+      await db
+        .from("rooms")
+        .update({ status: "question", current_index: 0, question_started_at: new Date(Date.now() + LEAD_IN_MS).toISOString(), phase_started_at: new Date().toISOString() })
+        .eq("id", room.id)
+        .eq("status", "lobby");
+      await prepareReviews(room.id);
+      return { ok: true };
+    }
     if (room.status === "question" || room.status === "finished") return { ok: true };
 
     // Royale: after every 3rd reveal, knock out the bottom 20%.
@@ -259,24 +268,27 @@ export const getQuestion = createServerFn({ method: "POST" })
       .eq("idx", room.current_index)
       .maybeSingle();
     if (!rq) return null;
-    const { data: q } = await db.from("questions").select("*").eq("id", rq.question_id).maybeSingle();
+    const [{ data: q }, { data: answers }, { data: roomPlayers }, secretRes, review] = await Promise.all([
+      db.from("questions").select("*").eq("id", rq.question_id).maybeSingle(),
+      db.from("answers").select("player_id, choice, points").eq("room_id", room.id).eq("idx", room.current_index),
+      db.from("players").select("id").eq("room_id", room.id),
+      data.playerId && data.token ? db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle() : Promise.resolve({ data: null }),
+      room.status === "reveal" ? db.from("round_reviews").select("review").eq("room_id", room.id).eq("idx", room.current_index).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
     if (!q) return null;
-
-    const { data: answers } = await db.from("answers").select("player_id, choice, points").eq("room_id", room.id).eq("idx", room.current_index);
     const revealed = room.status === "reveal";
     const { data: uses } = await db
       .from("powerup_uses")
       .select("player_id, kind, idx, removed")
-      .eq("idx", room.current_index)
-      .in("player_id", (await db.from("players").select("id").eq("room_id", room.id)).data?.map((p) => p.id) ?? []);
+      .in("player_id", (roomPlayers ?? []).map((p) => p.id));
     const answeredIds = new Set((answers ?? []).map((a) => a.player_id));
-    const pendingFreeze = (uses ?? []).some((u) => u.kind === "freeze" && !answeredIds.has(u.player_id));
+    const pendingFreeze = (uses ?? []).some((u) => u.idx === room.current_index && u.kind === "freeze" && !answeredIds.has(u.player_id));
 
     let power: { used: string[]; removed: number[]; double: boolean; freeze: boolean } | null = null;
     if (data.playerId && data.token) {
-      const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
+      const secret = secretRes.data as { token: string } | null;
       if (secret && secret.token === data.token) {
-        const { data: mineUses } = await db.from("powerup_uses").select("kind, idx, removed").eq("player_id", data.playerId);
+        const mineUses = (uses ?? []).filter((u) => u.player_id === data.playerId);
         const cur = (mineUses ?? []).filter((u) => u.idx === room.current_index);
         power = {
           used: (mineUses ?? []).map((u) => u.kind),
@@ -288,7 +300,7 @@ export const getQuestion = createServerFn({ method: "POST" })
     }
     const distribution = q.options.map((_, i) => (answers ?? []).filter((a) => a.choice === i).length);
     const mine = data.playerId ? (answers ?? []).find((a) => a.player_id === data.playerId) : undefined;
-    const { data: review } = revealed ? await db.from("round_reviews").select("review").eq("room_id", room.id).eq("idx", room.current_index).maybeSingle() : { data: null };
+    const reviewRow = review.data as { review: string } | null;
 
     return {
       idx: room.current_index,
@@ -306,7 +318,7 @@ export const getQuestion = createServerFn({ method: "POST" })
       myPoints: revealed && mine ? mine.points : null,
       correctIndex: revealed ? q.correct_index : null,
       explanation: revealed ? q.explanation : null,
-      aiReview: review?.review ?? null,
+      aiReview: reviewRow?.review ?? null,
       distribution: revealed ? distribution : null,
       hostExtraSeconds: pendingFreeze ? FREEZE_SECONDS : 0,
       power,
@@ -328,12 +340,16 @@ export const submitAnswer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin();
     const room = await getRoomByCode(data.code);
-    const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
+    // Run the independent checks in parallel so answering feels instant.
+    const [{ data: secret }, { data: pl }, { data: myUses }, { data: rq }] = await Promise.all([
+      db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle(),
+      db.from("players").select("eliminated_at").eq("id", data.playerId).maybeSingle(),
+      db.from("powerup_uses").select("kind").eq("player_id", data.playerId).eq("idx", data.idx),
+      db.from("room_questions").select("questions(correct_index, difficulty)").eq("room_id", room.id).eq("idx", data.idx).maybeSingle(),
+    ]);
     if (!secret || secret.token !== data.token) throw new Error("Not a player in this room.");
     if (room.status !== "question" || room.current_index !== data.idx) throw new Error("Too late — this question is closed.");
-    const { data: pl } = await db.from("players").select("eliminated_at").eq("id", data.playerId).maybeSingle();
     if (!pl || pl.eliminated_at !== null) throw new Error("You're spectating — eliminated players can't score.");
-    const { data: myUses } = await db.from("powerup_uses").select("kind").eq("player_id", data.playerId).eq("idx", data.idx);
     const frozen = (myUses ?? []).some((u) => u.kind === "freeze");
     const doubled = (myUses ?? []).some((u) => u.kind === "double");
 
@@ -344,11 +360,11 @@ export const submitAnswer = createServerFn({ method: "POST" })
     if (elapsed > myLimit + GRACE_MS) throw new Error("Time's up!");
     if (elapsed < 0) throw new Error("Wait for the question to open.");
 
-    const { data: rq } = await db.from("room_questions").select("question_id").eq("room_id", room.id).eq("idx", data.idx).maybeSingle();
-    const { data: q } = await db.from("questions").select("correct_index, difficulty").eq("id", rq!.question_id).maybeSingle();
-    const correct = q!.correct_index === data.choice;
+    const q = (rq as { questions: { correct_index: number; difficulty: string } | null } | null)?.questions;
+    if (!q) throw new Error("Question not found.");
+    const correct = q.correct_index === data.choice;
     const speed = Math.max(0, 1 - Math.min(elapsed, myLimit) / myLimit);
-    const points = basePoints(correct, speed, q!.difficulty) * (doubled ? 2 : 1);
+    const points = basePoints(correct, speed, q.difficulty) * (doubled ? 2 : 1);
 
     const { data: ok } = await db.rpc("record_answer_v3", {
       _room: room.id,

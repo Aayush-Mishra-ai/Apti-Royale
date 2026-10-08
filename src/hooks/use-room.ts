@@ -102,17 +102,35 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
       try {
         await tickGameFn({ data: { code, playerId, token } });
         const { data } = await supabase.from("rooms").select("*").eq("code", code).maybeSingle();
-        if (!cancelled && data) { setError(null); setRoom(data); await loadQuestion(); await loadPlayers(data.id); }
+        const prev = roomRef.current;
+        // Only re-render and refetch when the phase actually changed — avoids stutter every poll.
+        if (!cancelled && data && (!prev || prev.status !== data.status || prev.current_index !== data.current_index || prev.phase_started_at !== data.phase_started_at || prev.ai_error !== data.ai_error)) {
+          setError(null); setRoom(data); roomRef.current = data;
+          loadQuestion(); loadPlayers(data.id);
+        } else if (!cancelled) setError(null);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Connection interrupted.");
       }
-      if (!cancelled) timer = setTimeout(run, 1500);
+      if (!cancelled) timer = setTimeout(run, 900);
     };
     run();
     return () => { cancelled = true; clearTimeout(timer); };
   }, [room?.auto_control, room?.status, code, playerId, token, tickGameFn, loadQuestion, loadPlayers]);
 
-  return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion };
+  /** Ask the referee to advance right away (e.g. everyone has answered) instead of waiting for the next poll. */
+  const tickNow = useCallback(async () => {
+    const r = roomRef.current;
+    if (!r || !token || !canTickGame(r.auto_control, r.status)) return;
+    try {
+      await tickGameFn({ data: { code, playerId, token } });
+      const { data } = await supabase.from("rooms").select("*").eq("code", code).maybeSingle();
+      if (data && (data.status !== r.status || data.current_index !== r.current_index)) {
+        setRoom(data); roomRef.current = data; loadQuestion(); loadPlayers(data.id);
+      }
+    } catch { /* poll will retry */ }
+  }, [code, playerId, token, tickGameFn, loadQuestion, loadPlayers]);
+
+  return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion, tickNow };
 }
 
 export function usePhaseCountdown(room: Room | null, clockOffset: number) {
