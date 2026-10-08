@@ -28,7 +28,7 @@ function Home() {
   const create = useServerFn(createRoom);
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
-  const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal">("mixed");
+  const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal" | "Science" | "Tech" | "Sports" | "GK">("mixed");
   const [teamSize, setTeamSize] = useState<1 | 2 | 4>(1);
   const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -121,6 +121,10 @@ function Home() {
                     ["Quant", "Quant"],
                     ["Logical", "Logical"],
                     ["Verbal", "Verbal"],
+                    ["Science", "Science"],
+                    ["Tech", "Tech"],
+                    ["Sports", "Sports"],
+                    ["GK", "GK"],
                   ].map(([v, l]) => (
                     <option key={v} value={v} className="bg-card text-foreground">
                       {l}

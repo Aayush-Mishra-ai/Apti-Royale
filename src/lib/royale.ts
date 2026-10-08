@@ -23,6 +23,10 @@ export const CATEGORY_TIPS: Record<string, string> = {
   Quant: "Drill percentages, ratios and speed-distance-time daily — learn shortcuts like 10% chunks and unit rates.",
   Logical: "Practise series and seating puzzles: write the pattern or draw the arrangement before picking an option.",
   Verbal: "Read one editorial a day and note 5 new words; for grammar, read the sentence aloud to catch errors.",
+  Science: "Revise one NCERT-style concept a day — formulas, symbols and definitions — and quiz yourself without notes.",
+  Tech: "Follow a weekly tech newsletter and build one tiny project a month; hands-on beats reading docs alone.",
+  Sports: "Watch match highlights with the rulebook in mind — learn scoring, fouls and formats for 3 sports you follow.",
+  GK: "Spend 10 minutes daily on current affairs and maps; capitals, currencies and records repeat often in quizzes.",
 };
 
 export type CategoryStat = { category: string; correct: number; total: number; accuracy: number };
