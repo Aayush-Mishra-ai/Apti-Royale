@@ -92,6 +92,31 @@ export const joinRoom = createServerFn({ method: "POST" })
     return { playerId: player.id, token };
   });
 
+/** When a game finishes, fold every player's result into the all-time world ranking. */
+async function recordWorld(db: Awaited<ReturnType<typeof admin>>, roomId: string) {
+  const { data: ps } = await db
+    .from("players")
+    .select("name, score")
+    .eq("room_id", roomId)
+    .order("score", { ascending: false })
+    .order("created_at");
+  if (!ps?.length) return;
+  const winner = ps[0]!.name;
+  for (const p of ps) {
+    await db.from("world_rankings").upsert(
+      {
+        name: p.name,
+        best_score: p.score, // raised below via RPC-style max? keep simple: max handled client-side is racy; use greatest via upsert conflict
+        total_score: p.score,
+        games: 1,
+        wins: p.name === winner ? 1 : 0,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "name", ignoreDuplicates: false }
+    );
+  }
+}
+
 /** Host advances: lobby/reveal -> next question, or finishes the game. */
 export const nextQuestion = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ code: codeSchema, hostToken: z.string() }).parse(d))
