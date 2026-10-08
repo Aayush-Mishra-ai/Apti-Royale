@@ -191,6 +191,7 @@ function HostPage() {
               {players[0] && <p className="mt-2 text-center text-primary">{players[0].name} wins with {players[0].score} pts</p>}
             </>
           )}
+          {room.team_size > 1 && <div className="mt-6"><TeamStandings players={players} /></div>}
           <div className="mt-6"><Leaderboard players={players} /></div>
           <Link to="/" className="mt-6 block text-center text-sm text-primary underline">Host another game</Link>
         </section>
