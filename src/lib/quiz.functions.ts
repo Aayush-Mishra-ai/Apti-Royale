@@ -256,7 +256,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     return { accepted: true };
   });
 
-export const usePowerup = createServerFn({ method: "POST" })
+export const activatePowerup = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
