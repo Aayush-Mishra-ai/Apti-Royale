@@ -1,0 +1,2 @@
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS visual jsonb DEFAULT NULL;
+COMMENT ON COLUMN public.questions.visual IS 'Optional image, table, bar or line chart stimulus; contains no answer metadata. Served with the live question only.';

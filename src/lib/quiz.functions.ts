@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { FREEZE_SECONDS, basePoints, buildReport, isEliminationPoint, pickEliminated } from "./royale";
+import { parseQuestionVisual } from "./question-visual";
 
 const MAX_PLAYERS = 50;
 const GRACE_MS = 1500; // network slack after the timer ends
@@ -234,6 +235,7 @@ export const getQuestion = createServerFn({ method: "POST" })
       prompt: q.question ?? q.prompt,
       difficulty: q.difficulty,
       options: q.options,
+      visual: parseQuestionVisual(q.visual),
       startedAt: room.question_started_at,
       seconds: room.question_seconds,
       serverNow: new Date().toISOString(),

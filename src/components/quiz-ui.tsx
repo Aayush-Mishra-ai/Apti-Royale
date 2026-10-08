@@ -1,5 +1,6 @@
 import type { Player, Question } from "@/hooks/use-room";
 import { Check, Trophy, X } from "lucide-react";
+import { QuestionVisual } from "@/components/question-visual";
 
 export const OPTION_LABELS = ["A", "B", "C", "D"];
 
@@ -32,6 +33,7 @@ export function QuestionHeader({ q }: { q: Question }) {
         </span>
       </div>
       <h2 className="mt-3 text-xl font-semibold leading-snug text-foreground sm:text-2xl">{q.prompt}</h2>
+      <QuestionVisual key={q.idx} visual={q.visual} />
     </div>
   );
 }

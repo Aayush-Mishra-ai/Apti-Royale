@@ -171,6 +171,7 @@ export type Database = {
           options: string[]
           prompt: string
           question: string | null
+          visual: Json | null
         }
         Insert: {
           category: string
@@ -181,6 +182,7 @@ export type Database = {
           options: string[]
           prompt?: string
           question?: string | null
+          visual?: Json | null
         }
         Update: {
           category?: string
@@ -191,6 +193,7 @@ export type Database = {
           options?: string[]
           prompt?: string
           question?: string | null
+          visual?: Json | null
         }
         Relationships: []
       }
