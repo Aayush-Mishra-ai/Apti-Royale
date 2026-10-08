@@ -11,9 +11,9 @@ import { EliminationScreen, GetReady, Leaderboard, OptionButton, QuestionHeader,
 export const Route = createFileRoute("/host/$code")({
   head: ({ params }) => ({
     meta: [
-      { title: `Hosting ${params.code} — AptiRoyale` },
-      { name: "description", content: "Host screen for a live AptiRoyale game." },
-      { property: "og:title", content: "Host a live AptiRoyale game" },
+      { title: `Hosting ${params.code} — Apti Royale` },
+      { name: "description", content: "Host screen for a live Apti Royale game." },
+      { property: "og:title", content: "Host a live Apti Royale game" },
       { property: "og:description", content: "Run a live multiplayer aptitude quiz with a real-time leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -79,7 +79,7 @@ function HostPage() {
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
       {lead > 0 && <GetReady left={lead} />}
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Royale</span></Link>
+        <Link to="/" className="text-lg font-bold text-foreground">Apti <span className="text-primary">Royale</span></Link>
         {room.royale && room.status !== "lobby" && (
           <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2" aria-live="polite">
             <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Players left</span>

@@ -8,12 +8,12 @@ export const Route = createFileRoute("/")({
   loader: () => getWorldRanking(),
   head: () => ({
     meta: [
-      { title: "AptiRoyale — Live Multiplayer Aptitude Quiz" },
+      { title: "Apti Royale — Live Multiplayer Aptitude Quiz" },
       {
         name: "description",
         content: "Host a live aptitude quiz for up to 50 players. Join with a code, race the timer, climb the live leaderboard.",
       },
-      { property: "og:title", content: "AptiRoyale — Live Multiplayer Aptitude Quiz" },
+      { property: "og:title", content: "Apti Royale — Live Multiplayer Aptitude Quiz" },
       { property: "og:description", content: "Join with a code, race the timer, climb the live leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -52,12 +52,13 @@ function Home() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 select-none">
       <div className="pointer-events-none absolute inset-0 hero-glow" />
+      <div className="pointer-events-none absolute inset-0 ember-grid" />
       <div className="relative z-10 flex w-full max-w-[390px] flex-col gap-4">
         {/* Hero */}
         <header className="pt-4 pb-2 text-center">
           <h1 className="font-display text-7xl leading-none tracking-tight select-none">
-            APTI
-            <span className="text-glow-primary bg-gradient-to-br from-primary via-neon to-accent bg-clip-text text-transparent">
+            APTI{" "}
+            <span className="text-glow-primary bg-gradient-to-br from-primary via-accent to-neon bg-clip-text text-transparent">
               ROYALE
             </span>
           </h1>
