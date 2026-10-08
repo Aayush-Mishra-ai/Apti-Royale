@@ -131,12 +131,14 @@ export const nextQuestion = createServerFn({ method: "POST" })
         .update({ status: left <= 1 ? "finished" : "elimination" })
         .eq("id", room.id)
         .eq("status", "reveal");
+      if (left <= 1) await recordWorld(db, room.id);
       return { ok: true };
     }
 
     const next = room.current_index + 1;
     if (next >= room.total_questions) {
       await db.from("rooms").update({ status: "finished" }).eq("id", room.id);
+      await recordWorld(db, room.id);
     } else {
       await db
         .from("rooms")
