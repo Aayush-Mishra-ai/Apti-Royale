@@ -166,6 +166,7 @@ function Game({ code, session }: { code: string; session: Session }) {
       <header className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5">
         <span className="truncate font-medium text-foreground">
           {session.name}
+          {me?.team && <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">{me.team}</span>}
           {spectator && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Spectating</span>}
           {room.royale && !spectator && room.status !== "lobby" && (
             <span className="ml-2 font-mono text-xs text-destructive">{alive.length} left</span>
