@@ -104,6 +104,28 @@ function Home() {
             <h2 className="mb-4 font-display text-2xl tracking-wide text-neon">Host Arena</h2>
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="qcat" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+                  Category
+                </label>
+                <select
+                  id="qcat"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as typeof category)}
+                  className="cursor-pointer bg-transparent font-bold text-neon outline-none"
+                >
+                  {[
+                    ["mixed", "Mixed"],
+                    ["Quant", "Quant"],
+                    ["Logical", "Logical"],
+                    ["Verbal", "Verbal"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v} className="bg-card text-foreground">
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
                 <label htmlFor="qcount" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
                   Questions
                 </label>
