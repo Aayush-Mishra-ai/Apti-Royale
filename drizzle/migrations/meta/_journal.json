@@ -64,6 +64,13 @@
       "when": 1791451325411,
       "tag": "0008_room_difficulty",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791453589180,
+      "tag": "0009_add_question_visuals",
+      "breakpoints": true
     }
   ]
 }
