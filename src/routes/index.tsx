@@ -1,197 +1,130 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { createFileRoute } from "@tanstack/react-router";
-import { Compass, RotateCcw } from "lucide-react";
-import { Landing } from "@/components/landing";
-import { RoadmapCanvas } from "@/components/roadmap-canvas";
-import { NodePanel } from "@/components/node-panel";
-import { generateRoadmap } from "@/lib/roadmap.functions";
-import {
-  computeFrontier,
-  computeOnPath,
-  type Roadmap,
-} from "@/lib/roadmap-schema";
-
-const ROADMAP_KEY = "ascent:roadmap";
-const KNOWN_KEY = "ascent:known";
-
-function loadJson<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
+import { Loader2, Users, Zap, ShieldCheck } from "lucide-react";
+import { createRoom } from "@/lib/quiz.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ascent — AI Career Roadmapper" },
+      { title: "AptiQuiz — Live Multiplayer Aptitude Quiz" },
       {
         name: "description",
-        content:
-          "Turn any dream job into an interactive, zoomable skill-tree roadmap. Click a node for AI coaching, mark skills known, and watch your path re-route.",
+        content: "Host a live aptitude quiz for up to 50 players. Join with a code, race the timer, climb the live leaderboard.",
       },
-      { property: "og:title", content: "Ascent — AI Career Roadmapper" },
-      {
-        property: "og:description",
-        content: "Name your dream job. Get an interactive skill map you can climb, with AI coaching on every step.",
-      },
+      { property: "og:title", content: "AptiQuiz — Live Multiplayer Aptitude Quiz" },
+      { property: "og:description", content: "Join with a code, race the timer, climb the live leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: Home,
 });
 
-function Index() {
-  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-  const [known, setKnown] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+function Home() {
+  const navigate = useNavigate();
+  const create = useServerFn(createRoom);
+  const [code, setCode] = useState("");
+  const [seconds, setSeconds] = useState(20);
+  const [count, setCount] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fitSignal, setFitSignal] = useState(0);
 
-  const generate = useServerFn(generateRoadmap);
-
-  useEffect(() => {
-    const savedRoadmap = loadJson<Roadmap>(ROADMAP_KEY);
-    const savedKnown = loadJson<string[]>(KNOWN_KEY);
-    if (savedRoadmap) setRoadmap(savedRoadmap);
-    if (savedKnown) setKnown(new Set(savedKnown));
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (roadmap) localStorage.setItem(ROADMAP_KEY, JSON.stringify(roadmap));
-    else localStorage.removeItem(ROADMAP_KEY);
-  }, [roadmap]);
-
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(KNOWN_KEY, JSON.stringify([...known]));
-  }, [known, hydrated]);
-
-  const handleGenerate = useCallback(
-    async (dreamJob: string, currentSkills?: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await generate({ data: { dreamJob, currentSkills } });
-        setRoadmap(result);
-        setKnown(new Set());
-        setSelectedId(null);
-        setFitSignal((n) => n + 1);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [generate]
-  );
-
-  const frontier = useMemo(() => (roadmap ? computeFrontier(roadmap.nodes, known) : new Set<string>()), [roadmap, known]);
-  const onPath = useMemo(() => (roadmap ? computeOnPath(roadmap.nodes, known) : new Set<string>()), [roadmap, known]);
-  const selected = roadmap?.nodes.find((n) => n.id === selectedId) ?? null;
-  const progress = roadmap ? Math.round((known.size / roadmap.nodes.length) * 100) : 0;
-
-  const toggleKnown = useCallback((id: string) => {
-    setKnown((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  if (!roadmap) {
-    return <Landing onGenerate={handleGenerate} loading={loading} error={error} />;
+  async function host() {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await create({ data: { seconds, count } });
+      localStorage.setItem(`aptiquiz:host:${r.code}`, r.hostToken);
+      navigate({ to: "/host/$code", params: { code: r.code } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not create a room.");
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      {/* Top bar */}
-      <header className="z-20 flex items-center gap-3 border-b border-border bg-card/70 px-4 py-3 backdrop-blur">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Compass className="h-5 w-5 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold leading-tight text-foreground">{roadmap.title}</h1>
-            <p className="truncate text-[11px] leading-tight text-muted-foreground">{roadmap.summary}</p>
-          </div>
-        </div>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <div className="pointer-events-none absolute inset-0 hero-glow" />
+      <div className="relative z-10 w-full max-w-md text-center">
+        <h1 className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
+          Apti<span className="text-primary">Quiz</span>
+        </h1>
+        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
+          Live aptitude battles for placement prep. Up to 50 players, one code, one leaderboard.
+        </p>
 
-        <div className="ml-auto flex items-center gap-3">
-          <div className="hidden w-40 sm:block">
-            <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <span>Climbed</span>
-              <span>{known.size}/{roadmap.nodes.length}</span>
-            </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-success transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+        <form
+          className="mt-8 rounded-2xl border border-border bg-card/80 p-5 text-left backdrop-blur"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const c = code.trim().toUpperCase();
+            if (c.length === 5) navigate({ to: "/play/$code", params: { code: c } });
+          }}
+        >
+          <label htmlFor="code" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            Join a game
+          </label>
+          <div className="mt-2 flex gap-2">
+            <input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5))}
+              placeholder="CODE"
+              autoComplete="off"
+              inputMode="text"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-center font-mono text-xl tracking-[0.4em] text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+            <button
+              type="submit"
+              disabled={code.length !== 5}
+              className="rounded-xl bg-primary px-5 font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+            >
+              Join
+            </button>
           </div>
-          <span className="hidden font-mono text-sm font-semibold text-success md:inline">{progress}%</span>
+        </form>
+
+        <div className="mt-4 rounded-2xl border border-border bg-card/60 p-5 text-left">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Host a game</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className="text-sm text-muted-foreground">
+              Questions
+              <select
+                value={count}
+                onChange={(e) => setCount(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+              >
+                {[5, 10, 15, 20].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label className="text-sm text-muted-foreground">
+              Seconds each
+              <select
+                value={seconds}
+                onChange={(e) => setSeconds(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+              >
+                {[10, 15, 20, 30, 45].map((n) => <option key={n} value={n}>{n}s</option>)}
+              </select>
+            </label>
+          </div>
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
           <button
-            onClick={() => {
-              if (confirm("Start over with a new dream job? Your current map will be replaced.")) {
-                setRoadmap(null);
-                setSelectedId(null);
-              }
-            }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent"
+            onClick={host}
+            disabled={loading}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/60 px-4 py-3 font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">New goal</span>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Create room
           </button>
         </div>
-      </header>
 
-      {/* Map + panel */}
-      <div className="relative flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1">
-          <RoadmapCanvas
-            roadmap={roadmap}
-            known={known}
-            frontier={frontier}
-            onPath={onPath}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            fitSignal={fitSignal}
-          />
-        </div>
-
-        {selected && (
-          <>
-            {/* Mobile backdrop */}
-            <div
-              className="absolute inset-0 z-20 bg-black/50 md:hidden"
-              onClick={() => setSelectedId(null)}
-            />
-            <NodePanel
-              roadmap={roadmap}
-              node={selected}
-              isKnown={known.has(selected.id)}
-              knownTitles={roadmap.nodes.filter((n) => known.has(n.id)).map((n) => n.title)}
-              onClose={() => setSelectedId(null)}
-              onToggleKnown={toggleKnown}
-              onNavigate={setSelectedId}
-            />
-          </>
-        )}
+        <ul className="mt-8 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+          <li className="flex flex-col items-center gap-1"><Users className="h-4 w-4 text-primary" />50 players</li>
+          <li className="flex flex-col items-center gap-1"><Zap className="h-4 w-4 text-primary" />Speed scoring</li>
+          <li className="flex flex-col items-center gap-1"><ShieldCheck className="h-4 w-4 text-primary" />Server referee</li>
+        </ul>
       </div>
-
-      {/* Legend */}
-      <footer className="z-10 flex items-center justify-center gap-4 border-t border-border bg-card/50 px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> Next up</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-success" /> Known</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground/60" /> Locked</span>
-        <span className="hidden sm:inline">Drag to pan · scroll to zoom · click a node</span>
-      </footer>
-    </div>
+    </main>
   );
 }
