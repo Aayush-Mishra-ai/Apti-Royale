@@ -26,6 +26,7 @@ function Home() {
   const create = useServerFn(createRoom);
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
+  const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +34,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count } });
+      const r = await create({ data: { seconds: 20, count, royale } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
@@ -118,6 +119,18 @@ function Home() {
                   ))}
                 </select>
               </div>
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-background/50 p-3">
+                <span>
+                  <span className="block text-sm font-bold uppercase tracking-tight text-foreground">Royale mode</span>
+                  <span className="block text-xs text-muted-foreground">Bottom 20% knocked out every 3 questions</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={royale}
+                  onChange={(e) => setRoyale(e.target.checked)}
+                  className="h-5 w-5 accent-[var(--neon)]"
+                />
+              </label>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <button
                 onClick={host}

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { Snowflake, Sparkles, Divide } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
-import { joinRoom, submitAnswer } from "@/lib/quiz.functions";
+import { activatePowerup, getReport, joinRoom, submitAnswer } from "@/lib/quiz.functions";
+import { FREEZE_SECONDS, type PowerKind } from "@/lib/royale";
 import { useCountdown, useRoom } from "@/hooks/use-room";
-import { Leaderboard, OptionButton, QuestionHeader, TimerBar } from "@/components/quiz-ui";
+import { EliminationScreen, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 type Session = { playerId: string; token: string; name: string };
 
@@ -99,8 +101,10 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
 }
 
 function Game({ code, session }: { code: string; session: Session }) {
-  const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId);
-  const left = useCountdown(room?.status === "question" ? question : null, clockOffset);
+  const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
+  const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze ? FREEZE_SECONDS : 0);
+  const activate = useServerFn(activatePowerup);
+  const [powerBusy, setPowerBusy] = useState(false);
   const submit = useServerFn(submitAnswer);
   const [picked, setPicked] = useState<number | null>(null);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
@@ -116,9 +120,25 @@ function Game({ code, session }: { code: string; session: Session }) {
   const me = players.find((p) => p.id === session.playerId);
   const rank = players.findIndex((p) => p.id === session.playerId) + 1;
   const myChoice = question?.myChoice ?? picked;
+  const spectator = me ? me.eliminated_at !== null : false;
+  const alive = players.filter((p) => p.eliminated_at === null);
+  const removed = question?.power?.removed ?? [];
+
+  async function power(kind: PowerKind) {
+    if (!question || powerBusy) return;
+    setPowerBusy(true);
+    try {
+      await activate({ data: { code, playerId: session.playerId, token: session.token, idx: question.idx, kind } });
+      await reloadQuestion();
+    } catch (e) {
+      setSubmitErr(e instanceof Error ? e.message : "Power-up failed.");
+    } finally {
+      setPowerBusy(false);
+    }
+  }
 
   async function choose(i: number) {
-    if (!question || myChoice !== null || left <= 0) return;
+    if (!question || myChoice !== null || left <= 0 || spectator || removed.includes(i)) return;
     setPicked(i);
     try {
       await submit({ data: { code, playerId: session.playerId, token: session.token, idx: question.idx, choice: i } });
@@ -131,7 +151,13 @@ function Game({ code, session }: { code: string; session: Session }) {
   return (
     <main className="mx-auto min-h-screen max-w-xl px-4 py-5">
       <header className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5">
-        <span className="truncate font-medium text-foreground">{session.name}</span>
+        <span className="truncate font-medium text-foreground">
+          {session.name}
+          {spectator && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Spectating</span>}
+          {room.royale && !spectator && room.status !== "lobby" && (
+            <span className="ml-2 font-mono text-xs text-destructive">{alive.length} left</span>
+          )}
+        </span>
         <span className="font-mono text-sm text-muted-foreground">
           {rank > 0 && <>#{rank} · </>}<span className="font-semibold text-primary">{me?.score ?? 0}</span> pts
         </span>
@@ -147,22 +173,32 @@ function Game({ code, session }: { code: string; session: Session }) {
 
       {room.status === "question" && question && (
         <section className="mt-6 space-y-5">
-          <TimerBar left={left} total={question.seconds} />
+          <TimerBar left={left} total={question.seconds + (question.power?.freeze ? FREEZE_SECONDS : 0)} />
           <QuestionHeader q={question} />
+          {!spectator && question.power && (
+            <PowerBar
+              used={question.power.used}
+              active={{ fifty: removed.length > 0, double: question.power.double, freeze: question.power.freeze }}
+              disabled={powerBusy || myChoice !== null || left <= 0}
+              onUse={power}
+            />
+          )}
           <div className="grid gap-2.5">
             {question.options.map((o, i) => (
               <OptionButton
                 key={i}
                 idx={i}
-                text={o}
-                onClick={() => choose(i)}
-                disabled={myChoice !== null || left <= 0}
-                state={myChoice === null ? "idle" : myChoice === i ? "picked" : "dim"}
+                text={removed.includes(i) ? "—" : o}
+                onClick={spectator ? undefined : () => choose(i)}
+                disabled={spectator || myChoice !== null || left <= 0 || removed.includes(i)}
+                state={removed.includes(i) ? "dim" : myChoice === null ? "idle" : myChoice === i ? "picked" : "dim"}
               />
             ))}
           </div>
           <p className="text-center text-sm text-muted-foreground" aria-live="polite">
-            {submitErr ?? (myChoice !== null ? "Locked in! Waiting for the reveal…" : left <= 0 ? "Time's up!" : "Faster correct answers score more.")}
+            {spectator
+              ? "You're spectating — watch the survivors battle it out."
+              : submitErr ?? (myChoice !== null ? "Locked in! Waiting for the reveal…" : left <= 0 ? "Time's up!" : "Faster correct answers score more.")}
           </p>
         </section>
       )}
@@ -175,7 +211,7 @@ function Game({ code, session }: { code: string; session: Session }) {
             }`}
             aria-live="polite"
           >
-            {myChoice === null ? "No answer this time" : myChoice === question.correctIndex ? "Correct!" : "Not quite"}
+            {spectator ? "Spectating" : myChoice === null ? "No answer this time" : myChoice === question.correctIndex ? "Correct!" : "Not quite"}
             <div className="mt-1 font-mono text-sm font-normal text-foreground">
               +{question.myPoints ?? 0} pts{rank > 0 && <> · Rank #{rank} of {players.length}</>}
               {me && me.streak > 1 && <> · {me.streak} in a row</>}
@@ -201,10 +237,23 @@ function Game({ code, session }: { code: string; session: Session }) {
         </section>
       )}
 
+      {room.status === "elimination" && (
+        <EliminationScreen
+          eliminated={players.filter((p) => p.eliminated_at === room.current_index)}
+          left={alive.length}
+          highlightId={spectator && me?.eliminated_at !== room.current_index ? undefined : session.playerId}
+        />
+      )}
+
       {room.status === "finished" && (
         <section className="mt-8">
-          <h1 className="text-center text-3xl font-bold text-foreground">Game over</h1>
-          <p className="mt-2 text-center text-primary">You finished #{rank} with {me?.score ?? 0} pts</p>
+          {room.royale && alive[0] ? (
+            <WinnerScreen name={alive[0].name} score={alive[0].score} isMe={alive[0].id === session.playerId} />
+          ) : (
+            <h1 className="text-center text-3xl font-bold text-foreground">Game over</h1>
+          )}
+          <p className="mt-4 text-center text-primary">You finished #{rank} with {me?.score ?? 0} pts</p>
+          <Report code={code} session={session} />
           <div className="mt-6"><Leaderboard players={players} highlightId={session.playerId} /></div>
           <Link to="/" className="mt-6 block text-center text-sm text-primary underline">Play again</Link>
         </section>
@@ -215,4 +264,87 @@ function Game({ code, session }: { code: string; session: Session }) {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-screen items-center justify-center px-4 text-center text-muted-foreground">{children}</div>;
+}
+
+const POWERS: { kind: PowerKind; label: string; Icon: typeof Snowflake }[] = [
+  { kind: "fifty", label: "50:50", Icon: Divide },
+  { kind: "double", label: "Double", Icon: Sparkles },
+  { kind: "freeze", label: "Freeze +10s", Icon: Snowflake },
+];
+
+function PowerBar({
+  used,
+  active,
+  disabled,
+  onUse,
+}: {
+  used: string[];
+  active: Record<PowerKind, boolean>;
+  disabled: boolean;
+  onUse: (k: PowerKind) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Power-ups (one use each)">
+      {POWERS.map(({ kind, label, Icon }) => {
+        const isActive = active[kind];
+        const isUsed = used.includes(kind);
+        return (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => onUse(kind)}
+            disabled={disabled || isUsed}
+            className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2 text-xs font-bold uppercase tracking-wide transition active:scale-95 disabled:cursor-default ${
+              isActive
+                ? "border-neon bg-neon/15 text-neon shadow-[0_0_16px_color-mix(in_oklab,var(--neon)_35%,transparent)]"
+                : isUsed
+                  ? "border-border bg-card text-muted-foreground opacity-40"
+                  : "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {isActive ? "Active" : isUsed ? "Used" : label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Report({ code, session }: { code: string; session: Session }) {
+  const fetchReport = useServerFn(getReport);
+  const [r, setR] = useState<Awaited<ReturnType<typeof getReport>> | null>(null);
+  useEffect(() => {
+    fetchReport({ data: { code, playerId: session.playerId, token: session.token } }).then(setR).catch(() => {});
+  }, [code, session.playerId, session.token, fetchReport]);
+  if (!r || r.stats.length === 0) return null;
+  return (
+    <section className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+      <h2 className="font-display text-2xl tracking-wide text-primary">Your report</h2>
+      <ul className="mt-3 space-y-3">
+        {r.stats.map((s) => (
+          <li key={s.category}>
+            <div className="flex justify-between text-sm">
+              <span className="font-semibold text-foreground">{s.category}</span>
+              <span className="font-mono text-muted-foreground">
+                {s.correct}/{s.total} · {s.accuracy}%
+              </span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full ${s.category === r.practise ? "bg-neon" : "bg-accent"}`}
+                style={{ width: `${Math.max(4, s.accuracy)}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+      {r.practise && (
+        <div className="mt-4 rounded-xl border border-neon/40 bg-neon/10 p-3">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-neon">Practise next: {r.practise}</p>
+          <p className="mt-1 text-sm text-foreground">{r.tip}</p>
+        </div>
+      )}
+    </section>
+  );
 }
