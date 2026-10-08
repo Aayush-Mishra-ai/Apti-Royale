@@ -44,9 +44,9 @@ export function OptionButton({
   idx: number;
   text: string;
   state: "idle" | "picked" | "correct" | "wrong" | "dim";
-  onClick?: () => void;
-  disabled?: boolean;
-  count?: number;
+  onClick?: (() => void) | undefined;
+  disabled?: boolean | undefined;
+  count?: number | undefined;
 }) {
   const styles = {
     idle: "border-border bg-card hover:border-primary/70",
