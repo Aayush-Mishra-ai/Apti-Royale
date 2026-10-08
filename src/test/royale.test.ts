@@ -29,3 +29,14 @@ describe("royale rules", () => {
     expect(r.stats.find((s) => s.category === "Verbal")?.accuracy).toBe(50);
   });
 });
+
+import { basePoints } from "@/lib/royale";
+describe("difficulty points", () => {
+  it("scales by difficulty", () => {
+    expect(basePoints(true, 1, "easy")).toBe(1000);
+    expect(basePoints(true, 1, "medium")).toBe(1250);
+    expect(basePoints(true, 1, "hard")).toBe(1500);
+    expect(basePoints(true, 0, "hard")).toBe(750);
+    expect(basePoints(false, 1, "hard")).toBe(0);
+  });
+});
