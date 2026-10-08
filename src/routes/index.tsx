@@ -265,6 +265,22 @@ function Home() {
                   className="h-5 w-5 accent-[var(--neon)]"
                 />
               </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  category === "mixed" ? "All topics" : category,
+                  difficulty === "mixed" ? "All levels" : `${difficulty} · ${difficulty === "easy" ? "1x" : difficulty === "medium" ? "1.25x" : "1.5x"}`,
+                  teamSize === 1 ? "Solo" : teamSize === 2 ? "Duos" : "Squads of 4",
+                  `${count} questions`,
+                  royale ? "Royale on" : "Royale off",
+                ].map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border border-border bg-background/60 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <button
                 onClick={host}
