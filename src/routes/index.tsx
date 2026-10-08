@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Users, Zap, ShieldCheck } from "lucide-react";
-import { createRoom } from "@/lib/quiz.functions";
+import { Loader2, Users, Zap, ShieldCheck, Trophy } from "lucide-react";
+import { createRoom, getWorldRanking } from "@/lib/quiz.functions";
 
 export const Route = createFileRoute("/")({
+  loader: () => getWorldRanking(),
   head: () => ({
     meta: [
       { title: "AptiRoyale — Live Multiplayer Aptitude Quiz" },
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const world = Route.useLoaderData();
   const navigate = useNavigate();
   const create = useServerFn(createRoom);
   const [code, setCode] = useState("");
@@ -180,6 +182,30 @@ function Home() {
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent/80">
               Server Referee Active
             </span>
+          </div>
+          {/* World ranking */}
+          <div className="col-span-2 rounded-3xl border border-border bg-card/60 p-5 backdrop-blur-xl">
+            <div className="mb-3 flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-accent" />
+              <h2 className="font-display text-xl tracking-wide text-foreground">World Ranking</h2>
+            </div>
+            {world.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No games finished yet — be the first on the board.</p>
+            ) : (
+              <ol className="flex flex-col gap-1.5">
+                {world.slice(0, 5).map((w, i) => (
+                  <li key={w.name} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="w-5 font-mono text-xs text-muted-foreground">#{i + 1}</span>
+                      <span className="font-semibold text-foreground">{w.name}</span>
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {w.total_score} pts · {w.wins}W/{w.games}G
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </div>
 
