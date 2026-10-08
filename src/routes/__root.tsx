@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ThemeToggle } from "../components/theme-toggle";
 
 function NotFoundComponent() {
   return (
@@ -105,6 +106,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        children: `try{if(localStorage.getItem("aptiroyale:theme")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -133,6 +139,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <ThemeToggle />
     </QueryClientProvider>
   );
 }
