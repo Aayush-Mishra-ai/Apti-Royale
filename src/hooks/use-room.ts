@@ -101,5 +101,19 @@ export function useCountdown(q: Question | null, clockOffset: number, extra = 0)
   }, [q?.startedAt, q?.seconds, clockOffset, extra]);
   // Until the first tick for this question, report the full duration (never a stale 0).
   if (!q) return 0;
-  return state.key === key ? state.left : q.seconds + extra;
+  return state.key === key ? Math.min(state.left, q.seconds + extra) : q.seconds + extra;
+}
+
+/** Seconds until the server-scheduled start (synced "Get ready" on every screen). */
+export function useLeadIn(q: Question | null, clockOffset: number) {
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    if (!q?.startedAt) return setLeft(0);
+    const start = new Date(q.startedAt).getTime();
+    const tick = () => setLeft(Math.max(0, (start - (Date.now() + clockOffset)) / 1000));
+    tick();
+    const t = setInterval(tick, 100);
+    return () => clearInterval(t);
+  }, [q?.startedAt, clockOffset]);
+  return left;
 }
