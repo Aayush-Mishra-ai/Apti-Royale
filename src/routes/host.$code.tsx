@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
 import { nextQuestion, revealAnswer } from "@/lib/quiz.functions";
-import { useCountdown, useRoom } from "@/hooks/use-room";
-import { EliminationScreen, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
+import { useCountdown, useLeadIn, useRoom } from "@/hooks/use-room";
+import { EliminationScreen, GetReady, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 export const Route = createFileRoute("/host/$code")({
   head: ({ params }) => ({
@@ -27,6 +27,7 @@ function HostPage() {
   const [checked, setChecked] = useState(false);
   const { room, players, question, clockOffset, error } = useRoom(code, undefined, true);
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.hostExtraSeconds ?? 0);
+  const lead = useLeadIn(room?.status === "question" ? question : null, clockOffset);
   const alive = players.filter((p) => p.eliminated_at === null);
   const next = useServerFn(nextQuestion);
   const reveal = useServerFn(revealAnswer);
@@ -73,6 +74,7 @@ function HostPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
+      {lead > 0 && <GetReady left={lead} />}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Royale</span></Link>
         {room.royale && room.status !== "lobby" && (

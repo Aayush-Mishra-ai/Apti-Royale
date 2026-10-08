@@ -5,8 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
 import { activatePowerup, getReport, joinRoom, submitAnswer } from "@/lib/quiz.functions";
 import { FREEZE_SECONDS, type PowerKind } from "@/lib/royale";
-import { useCountdown, useRoom } from "@/hooks/use-room";
-import { EliminationScreen, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
+import { useCountdown, useLeadIn, useRoom } from "@/hooks/use-room";
+import { EliminationScreen, GetReady, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 type Session = { playerId: string; token: string; name: string };
 
@@ -104,6 +104,7 @@ function Game({ code, session }: { code: string; session: Session }) {
   const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
   const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze || (local.idx === question?.idx && local.used.includes("freeze")) ? FREEZE_SECONDS : 0);
+  const lead = useLeadIn(room?.status === "question" ? question : null, clockOffset);
   const activate = useServerFn(activatePowerup);
   const [powerBusy, setPowerBusy] = useState(false);
   const submit = useServerFn(submitAnswer);
@@ -185,6 +186,7 @@ function Game({ code, session }: { code: string; session: Session }) {
         </section>
       )}
 
+      {lead > 0 && <GetReady left={lead} />}
       {room.status === "question" && question && (
         <section className="mt-6 space-y-5">
           <TimerBar left={left} total={question.seconds + (activeNow.freeze ? FREEZE_SECONDS : 0)} />

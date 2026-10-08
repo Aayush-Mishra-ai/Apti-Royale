@@ -50,6 +50,13 @@
       "when": 1791448358371,
       "tag": "0006_add_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791449922688,
+      "tag": "0007_first_correct_bonus",
+      "breakpoints": true
     }
   ]
 }

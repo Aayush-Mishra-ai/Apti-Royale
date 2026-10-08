@@ -4,6 +4,7 @@ import { FREEZE_SECONDS, buildReport, isEliminationPoint, pickEliminated } from 
 
 const MAX_PLAYERS = 50;
 const GRACE_MS = 1500; // network slack after the timer ends
+const LEAD_IN_MS = 3000; // synced "get ready" so every screen opens the question together
 const codeSchema = z.string().trim().regex(/^\d{6}$/);
 
 async function admin() {
@@ -150,7 +151,7 @@ export const nextQuestion = createServerFn({ method: "POST" })
     } else {
       await db
         .from("rooms")
-        .update({ status: "question", current_index: next, question_started_at: new Date().toISOString() })
+        .update({ status: "question", current_index: next, question_started_at: new Date(Date.now() + LEAD_IN_MS).toISOString() })
         .eq("id", room.id)
         .eq("current_index", room.current_index);
     }
@@ -271,6 +272,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const limit = room.question_seconds * 1000;
     const myLimit = limit + (frozen ? FREEZE_SECONDS * 1000 : 0);
     if (elapsed > myLimit + GRACE_MS) throw new Error("Time's up!");
+    if (elapsed < 0) throw new Error("Wait for the question to open.");
 
     const { data: rq } = await db.from("room_questions").select("question_id").eq("room_id", room.id).eq("idx", data.idx).maybeSingle();
     const { data: q } = await db.from("questions").select("correct_index").eq("id", rq!.question_id).maybeSingle();
@@ -278,7 +280,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const speed = Math.max(0, 1 - Math.min(elapsed, myLimit) / myLimit);
     const points = (correct ? 500 + Math.round(500 * speed) : 0) * (doubled ? 2 : 1);
 
-    const { data: ok } = await db.rpc("record_answer_v2", {
+    const { data: ok } = await db.rpc("record_answer_v3", {
       _room: room.id,
       _player: data.playerId,
       _idx: data.idx,

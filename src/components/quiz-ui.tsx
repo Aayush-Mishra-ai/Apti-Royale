@@ -150,3 +150,14 @@ export function WinnerScreen({ name, score, isMe }: { name: string; score: numbe
     </section>
   );
 }
+
+/** Full-screen synced countdown shown on host and players before a question opens. */
+export function GetReady({ left }: { left: number }) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur">
+      <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">Get ready</p>
+      <p className="font-display text-9xl text-primary">{Math.ceil(left)}</p>
+      <p className="mt-2 text-sm text-muted-foreground">Fastest correct answer wins a bonus</p>
+    </div>
+  );
+}
