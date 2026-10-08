@@ -89,7 +89,8 @@ export function layoutRoadmap(nodes: RoadmapNode[], stageNameById: Map<string, s
       });
     });
     // Stage label for the column = stage of its first node (nodes are stage-ordered by the AI).
-    const first = byId.get(col[0]);
+    const firstId: string | undefined = col[0];
+    const first = firstId ? byId.get(firstId) : undefined;
     if (first) stageByDepth.set(d, stageNameById.get(first.stageId) ?? "");
   }
 
