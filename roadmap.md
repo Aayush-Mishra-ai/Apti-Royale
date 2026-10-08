@@ -2,8 +2,8 @@
 
 - [x] Give Pro mode a distinct palette and lightweight Goku logo animation
 - [x] Verify Pro appearance, theme isolation and reduced-motion behavior
-- [ ] Replace floating Goku with a moving rage-mode animation and verify playback
-- [ ] Publish the update and provide the deployment URL
+- [x] Replace floating Goku with a moving rage-mode animation and verify playback
+- [x] Request publishing and provide the deployment URL
 
 - [x] Add host-selectable automatic rounds that continue from player screens
 - [x] Add AI answer coaching and shared round review countdown
