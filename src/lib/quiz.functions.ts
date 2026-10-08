@@ -38,6 +38,7 @@ export const createRoom = createServerFn({ method: "POST" })
         count: z.number().int().min(5).max(20).default(10),
         royale: z.boolean().default(false),
         category: z.enum(["mixed", "Quant", "Logical", "Verbal"]).default("mixed"),
+        teamSize: z.union([z.literal(1), z.literal(2), z.literal(4)]).default(1),
       })
       .parse(d)
   )
@@ -59,6 +60,7 @@ export const createRoom = createServerFn({ method: "POST" })
           total_questions: ids.length,
           royale: data.royale,
           category: data.category,
+          team_size: data.teamSize,
         })
         .select("id, code")
         .maybeSingle();
@@ -81,9 +83,15 @@ export const joinRoom = createServerFn({ method: "POST" })
     const { count } = await db.from("players").select("id", { count: "exact", head: true }).eq("room_id", room.id);
     if ((count ?? 0) >= MAX_PLAYERS) throw new Error("Room is full (50 players).");
 
+    // Teams: round-robin players across Team A, Team B, … so squads stay balanced.
+    let team: string | null = null;
+    if (room.team_size > 1) {
+      const numTeams = Math.ceil(MAX_PLAYERS / room.team_size);
+      team = `Team ${String.fromCharCode(65 + ((count ?? 0) % numTeams))}`;
+    }
     const { data: player, error } = await db
       .from("players")
-      .insert({ room_id: room.id, name: data.name })
+      .insert({ room_id: room.id, name: data.name, team })
       .select("id")
       .maybeSingle();
     if (error || !player) throw new Error(error?.code === "23505" ? "That name is taken in this room." : "Could not join.");
