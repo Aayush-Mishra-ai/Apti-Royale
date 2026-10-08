@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Users, Zap, ShieldCheck, Trophy } from "lucide-react";
 import { createRoom, getWorldRanking, joinRoom, nextQuestion } from "@/lib/quiz.functions";
-import gokuPro from "@/assets/goku-pro.png";
+import { ProFighter } from "@/components/pro-fighter";
 
 export const Route = createFileRoute("/")({
   loader: () => getWorldRanking(),
@@ -82,7 +82,7 @@ function Home() {
       <div className="relative z-10 flex w-full max-w-[390px] flex-col gap-4 rise-in">
         {/* Hero */}
         <header className="arena-brand pt-4 pb-2 text-center">
-          <img className="pro-mascot" src={gokuPro} alt="Goku in a fighting stance" width={672} height={992} />
+          <ProFighter />
           <div className="arena-brand-copy">
           <h1 className="float-slow font-display text-7xl leading-none tracking-tight select-none">
             APTI{" "}

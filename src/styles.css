@@ -310,7 +310,8 @@
 /* Isolated Pro homepage treatment; no gameplay animation or JS loop. */
 .pro-mascot { display: none; }
 .pro .arena-brand { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 174px; }
-.pro .pro-mascot { display: block; flex: 0 0 104px; width: 104px; height: 168px; object-fit: contain; animation: fighter-float 4s ease-in-out infinite; }
+.pro .pro-mascot { display: block; flex: 0 0 104px; width: 104px; height: 168px; object-fit: contain; }
+.pro .pro-rage { mix-blend-mode: screen; }
 .pro .arena-brand-copy { min-width: 0; text-align: left; }
 .pro .arena-brand h1 { font-size: 48px; letter-spacing: 0; animation: none; }
 .pro .arena-brand h1 span { display: block; background-image: linear-gradient(110deg, var(--primary), var(--neon)); text-shadow: none; }
@@ -320,5 +321,3 @@
 .pro .arena-home .hero-glow { background: linear-gradient(150deg, color-mix(in oklab, var(--primary) 7%, transparent), transparent 60%); }
 .pro .arena-home .ember-grid { background-image: linear-gradient(color-mix(in oklab, var(--primary) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--primary) 10%, transparent) 1px, transparent 1px); background-size: 64px 64px; }
 .pro .arena-home .embers { display: none; }
-@keyframes fighter-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
-@media (prefers-reduced-motion: reduce) { .pro .pro-mascot { animation: none; } }
