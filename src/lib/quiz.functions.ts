@@ -322,6 +322,18 @@ export const activatePowerup = createServerFn({ method: "POST" })
     return { removed };
   });
 
+/** All-time world ranking across every game — public read. */
+export const getWorldRanking = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin();
+  const { data } = await db
+    .from("world_rankings")
+    .select("name, best_score, total_score, games, wins")
+    .order("total_score", { ascending: false })
+    .order("wins", { ascending: false })
+    .limit(20);
+  return data ?? [];
+});
+
 export const getReport = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ code: codeSchema, playerId: z.string().uuid(), token: z.string() }).parse(d))
   .handler(async ({ data }) => {
