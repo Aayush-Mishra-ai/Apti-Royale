@@ -102,11 +102,16 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
       try {
         await tickGameFn({ data: { code, playerId, token } });
         const { data } = await supabase.from("rooms").select("*").eq("code", code).maybeSingle();
-        if (!cancelled && data) { setError(null); setRoom(data); await loadQuestion(); await loadPlayers(data.id); }
+        const prev = roomRef.current;
+        // Only re-render and refetch when the phase actually changed — avoids stutter every poll.
+        if (!cancelled && data && (!prev || prev.status !== data.status || prev.current_index !== data.current_index || prev.phase_started_at !== data.phase_started_at || prev.ai_error !== data.ai_error)) {
+          setError(null); setRoom(data); roomRef.current = data;
+          loadQuestion(); loadPlayers(data.id);
+        } else if (!cancelled) setError(null);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Connection interrupted.");
       }
-      if (!cancelled) timer = setTimeout(run, 1500);
+      if (!cancelled) timer = setTimeout(run, 900);
     };
     run();
     return () => { cancelled = true; clearTimeout(timer); };
