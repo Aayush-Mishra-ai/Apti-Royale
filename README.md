@@ -2,7 +2,7 @@
 
 A live multiplayer aptitude and logic quiz for up to 50 players. No login — players join with a 6-digit room code and a nickname. The server is the referee: it checks every answer, the timing and the scores, so nobody can cheat from their phone.
 
-**Live URL:** https://name-finder-fun.lovable.app
+**Live URL:** https://aptiroyale.lovable.app/
 
 ## What it does
 
