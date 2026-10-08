@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const text = z.string().min(1).max(200);
-export const questionVisualSchema = z.discriminatedUnion("type", [
+export const questionVisualSchema = z.union([
   z.object({ type: z.literal("image"), asset: z.enum(["lab-01"]), title: text, alt: text }),
   z.object({
     type: z.literal("table"), title: text,
