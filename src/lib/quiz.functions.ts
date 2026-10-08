@@ -37,7 +37,7 @@ export const createRoom = createServerFn({ method: "POST" })
         seconds: z.number().int().min(10).max(60).default(20),
         count: z.number().int().min(5).max(20).default(10),
         royale: z.boolean().default(false),
-        category: z.enum(["mixed", "Quant", "Logical", "Verbal"]).default("mixed"),
+        category: z.enum(["mixed", "Quant", "Logical", "Verbal", "Science", "Tech", "Sports", "GK"]).default("mixed"),
         teamSize: z.union([z.literal(1), z.literal(2), z.literal(4)]).default(1),
       })
       .parse(d)
