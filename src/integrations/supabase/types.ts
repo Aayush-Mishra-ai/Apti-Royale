@@ -318,6 +318,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_world_ranking: {
+        Args: { _name: string; _score: number; _won: boolean }
+        Returns: undefined
+      }
       record_answer: {
         Args: {
           _choice: number
