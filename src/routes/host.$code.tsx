@@ -129,7 +129,7 @@ function HostPage() {
                 />
               ))}
             </div>
-            {question.explanation && <p className="text-sm text-muted-foreground">💡 {question.explanation}</p>}
+            {question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
             <div className="flex items-center justify-between">
               <span className="font-mono text-sm text-muted-foreground">
                 {question.answeredCount}/{players.length} answered
@@ -158,7 +158,7 @@ function HostPage() {
 
       {room.status === "finished" && (
         <section className="mx-auto mt-10 max-w-lg">
-          <h1 className="text-center text-3xl font-bold text-foreground">🏆 Final standings</h1>
+          <h1 className="text-center text-3xl font-bold text-foreground">Final standings</h1>
           {players[0] && <p className="mt-2 text-center text-primary">{players[0].name} wins with {players[0].score} pts</p>}
           <div className="mt-6"><Leaderboard players={players} /></div>
           <Link to="/" className="mt-6 block text-center text-sm text-primary underline">Host another game</Link>

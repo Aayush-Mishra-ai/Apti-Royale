@@ -174,7 +174,7 @@ function Game({ code, session }: { code: string; session: Session }) {
             }`}
             aria-live="polite"
           >
-            {myChoice === null ? "No answer this time" : myChoice === question.correctIndex ? "Correct! 🎉" : "Not quite"}
+            {myChoice === null ? "No answer this time" : myChoice === question.correctIndex ? "Correct!" : "Not quite"}
           </div>
           <QuestionHeader q={question} />
           <div className="grid gap-2.5">
@@ -188,7 +188,7 @@ function Game({ code, session }: { code: string; session: Session }) {
               />
             ))}
           </div>
-          {question.explanation && <p className="text-sm text-muted-foreground">💡 {question.explanation}</p>}
+          {question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
           <div>
             <h2 className="mb-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Top 5</h2>
             <Leaderboard players={players} highlightId={session.playerId} limit={5} />
