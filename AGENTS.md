@@ -14,6 +14,6 @@
 ## Technical decisions
 
 - The server is the quiz referee: all game writes (create/join/advance/reveal/answer) go through `createServerFn` handlers in `src/lib/quiz.functions.ts` using the admin client; the browser can only read `rooms` and `players`. Why: cheat resistance — correct answers, timing and scoring never trust the client.
-- Answer timing uses the server clock (`question_started_at` vs handler `Date.now()`, small grace window); duplicate answers are blocked by a unique (player, idx) constraint inside the `record_answer` DB function. Why: tamper-proof speed scoring.
+- Answer timing uses the server clock (`question_started_at` vs handler `Date.now()`, small grace window); duplicate answers are blocked by a unique (player, idx) constraint inside the `record_answer_v2` DB function, which also applies the streak bonus atomically; reveal resets streaks for non-answerers. Why: tamper-proof speed and streak scoring.
 - Identity is anonymous per-room secret tokens (host token, player token) kept in localStorage and stored in service-role-only secret tables. Why: no accounts needed to join with a code.
 - Live updates use realtime on `rooms` and `players`; question content is fetched from the server only when it is live. Why: hide upcoming questions and answers.

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const MAX_PLAYERS = 50;
 const GRACE_MS = 1500; // network slack after the timer ends
-const codeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9]{5}$/);
+const codeSchema = z.string().trim().regex(/^\d{6}$/);
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -11,11 +11,8 @@ async function admin() {
 }
 
 function makeCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let s = "";
-  const bytes = crypto.getRandomValues(new Uint8Array(5));
-  for (const b of bytes) s += chars[b % chars.length];
-  return s;
+  const n = crypto.getRandomValues(new Uint32Array(1))[0]! % 900000;
+  return String(100000 + n);
 }
 
 async function getRoomByCode(code: string) {
@@ -111,7 +108,15 @@ export const revealAnswer = createServerFn({ method: "POST" })
     const db = await admin();
     const room = await getRoomByCode(data.code);
     await assertHost(room.id, data.hostToken);
-    if (room.status === "question") await db.from("rooms").update({ status: "reveal" }).eq("id", room.id);
+    if (room.status === "question") {
+      await db.from("rooms").update({ status: "reveal" }).eq("id", room.id);
+      // Players who didn't answer lose their streak.
+      const { data: ans } = await db.from("answers").select("player_id").eq("room_id", room.id).eq("idx", room.current_index);
+      const answered = (ans ?? []).map((a) => a.player_id);
+      let q = db.from("players").update({ streak: 0 }).eq("room_id", room.id);
+      if (answered.length) q = q.not("id", "in", `(${answered.join(",")})`);
+      await q;
+    }
     return { ok: true };
   });
 
@@ -134,7 +139,7 @@ export const getQuestion = createServerFn({ method: "POST" })
     const { data: q } = await db.from("questions").select("*").eq("id", rq.question_id).maybeSingle();
     if (!q) return null;
 
-    const { data: answers } = await db.from("answers").select("player_id, choice").eq("room_id", room.id).eq("idx", room.current_index);
+    const { data: answers } = await db.from("answers").select("player_id, choice, points").eq("room_id", room.id).eq("idx", room.current_index);
     const revealed = room.status === "reveal";
     const distribution = q.options.map((_, i) => (answers ?? []).filter((a) => a.choice === i).length);
     const mine = data.playerId ? (answers ?? []).find((a) => a.player_id === data.playerId) : undefined;
@@ -143,13 +148,15 @@ export const getQuestion = createServerFn({ method: "POST" })
       idx: room.current_index,
       total: room.total_questions,
       category: q.category,
-      prompt: q.prompt,
+      prompt: q.question ?? q.prompt,
+      difficulty: q.difficulty,
       options: q.options,
       startedAt: room.question_started_at,
       seconds: room.question_seconds,
       serverNow: new Date().toISOString(),
       answeredCount: (answers ?? []).length,
       myChoice: mine ? mine.choice : null,
+      myPoints: revealed && mine ? mine.points : null,
       correctIndex: revealed ? q.correct_index : null,
       explanation: revealed ? q.explanation : null,
       distribution: revealed ? distribution : null,
@@ -186,7 +193,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const speed = Math.max(0, 1 - Math.min(elapsed, limit) / limit);
     const points = correct ? 500 + Math.round(500 * speed) : 0;
 
-    const { data: ok } = await db.rpc("record_answer", {
+    const { data: ok } = await db.rpc("record_answer_v2", {
       _room: room.id,
       _player: data.playerId,
       _idx: data.idx,
@@ -194,6 +201,6 @@ export const submitAnswer = createServerFn({ method: "POST" })
       _correct: correct,
       _points: points,
     });
-    if (!ok) throw new Error("You already answered this one.");
+    if (ok === null || ok < 0) throw new Error("You already answered this one.");
     return { accepted: true };
   });

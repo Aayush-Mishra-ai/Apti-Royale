@@ -9,9 +9,9 @@ import { Leaderboard, OptionButton, QuestionHeader, TimerBar } from "@/component
 export const Route = createFileRoute("/host/$code")({
   head: ({ params }) => ({
     meta: [
-      { title: `Hosting ${params.code} — AptiQuiz` },
-      { name: "description", content: "Host screen for a live AptiQuiz game." },
-      { property: "og:title", content: "Host a live AptiQuiz game" },
+      { title: `Hosting ${params.code} — AptiRoyale` },
+      { name: "description", content: "Host screen for a live AptiRoyale game." },
+      { property: "og:title", content: "Host a live AptiRoyale game" },
       { property: "og:description", content: "Run a live multiplayer aptitude quiz with a real-time leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -33,7 +33,7 @@ function HostPage() {
   const revealedFor = useRef(-1);
 
   useEffect(() => {
-    setToken(localStorage.getItem(`aptiquiz:host:${code}`));
+    setToken(localStorage.getItem(`aptiroyale:host:${code}`));
     setChecked(true);
   }, [code]);
 
@@ -73,7 +73,7 @@ function HostPage() {
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Quiz</span></Link>
+        <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Royale</span></Link>
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2">
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Code</span>
           <span className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{code}</span>

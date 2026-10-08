@@ -93,6 +93,7 @@ export type Database = {
           name: string
           room_id: string
           score: number
+          streak: number
         }
         Insert: {
           correct_count?: number
@@ -101,6 +102,7 @@ export type Database = {
           name: string
           room_id: string
           score?: number
+          streak?: number
         }
         Update: {
           correct_count?: number
@@ -109,6 +111,7 @@ export type Database = {
           name?: string
           room_id?: string
           score?: number
+          streak?: number
         }
         Relationships: [
           {
@@ -124,26 +127,32 @@ export type Database = {
         Row: {
           category: string
           correct_index: number
+          difficulty: string
           explanation: string
           id: number
           options: string[]
           prompt: string
+          question: string | null
         }
         Insert: {
           category: string
           correct_index: number
+          difficulty?: string
           explanation?: string
           id?: number
           options: string[]
-          prompt: string
+          prompt?: string
+          question?: string | null
         }
         Update: {
           category?: string
           correct_index?: number
+          difficulty?: string
           explanation?: string
           id?: number
           options?: string[]
           prompt?: string
+          question?: string | null
         }
         Relationships: []
       }
@@ -251,6 +260,17 @@ export type Database = {
           _room: string
         }
         Returns: boolean
+      }
+      record_answer_v2: {
+        Args: {
+          _choice: number
+          _correct: boolean
+          _idx: number
+          _player: string
+          _points: number
+          _room: string
+        }
+        Returns: number
       }
     }
     Enums: {

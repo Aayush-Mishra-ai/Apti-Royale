@@ -11,9 +11,9 @@ type Session = { playerId: string; token: string; name: string };
 export const Route = createFileRoute("/play/$code")({
   head: ({ params }) => ({
     meta: [
-      { title: `Join ${params.code} — AptiQuiz` },
-      { name: "description", content: "Join a live AptiQuiz aptitude game with your room code." },
-      { property: "og:title", content: "Join a live AptiQuiz game" },
+      { title: `Join ${params.code} — AptiRoyale` },
+      { name: "description", content: "Join a live AptiRoyale aptitude game with your room code." },
+      { property: "og:title", content: "Join a live AptiRoyale game" },
       { property: "og:description", content: "Race the timer and climb the live leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/play/$code")({
 
 function PlayPage() {
   const { code } = Route.useParams();
-  const key = `aptiquiz:player:${code}`;
+  const key = `aptiroyale:player:${code}`;
   const [session, setSession] = useState<Session | null>(null);
   const [checked, setChecked] = useState(false);
 
@@ -74,7 +74,7 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
       >
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Room</p>
         <p className="font-mono text-3xl font-bold tracking-[0.3em] text-primary">{code}</p>
-        <label htmlFor="name" className="mt-6 block text-sm text-muted-foreground">Your name</label>
+        <label htmlFor="name" className="mt-6 block text-sm text-muted-foreground">Nickname</label>
         <input
           id="name"
           value={name}
@@ -91,7 +91,8 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />} Join game
         </button>
-        <Link to="/" className="mt-4 block text-center text-sm text-muted-foreground underline">Back</Link>
+        <p className="mt-4 text-center text-xs text-muted-foreground">No personal data is collected, only a nickname.</p>
+        <Link to="/" className="mt-2 block text-center text-sm text-muted-foreground underline">Back</Link>
       </form>
     </main>
   );
@@ -175,6 +176,10 @@ function Game({ code, session }: { code: string; session: Session }) {
             aria-live="polite"
           >
             {myChoice === null ? "No answer this time" : myChoice === question.correctIndex ? "Correct!" : "Not quite"}
+            <div className="mt-1 font-mono text-sm font-normal text-foreground">
+              +{question.myPoints ?? 0} pts{rank > 0 && <> · Rank #{rank} of {players.length}</>}
+              {me && me.streak > 1 && <> · {me.streak} in a row</>}
+            </div>
           </div>
           <QuestionHeader q={question} />
           <div className="grid gap-2.5">
