@@ -29,6 +29,7 @@ function Home() {
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
   const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal" | "Science" | "Tech" | "Sports" | "GK">("mixed");
+  const [difficulty, setDifficulty] = useState<"mixed" | "easy" | "medium" | "hard">("mixed");
   const [teamSize, setTeamSize] = useState<1 | 2 | 4>(1);
   const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count, royale, category, teamSize } });
+      const r = await create({ data: { seconds: 20, count, royale, category, teamSize, difficulty } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
@@ -125,6 +126,28 @@ function Home() {
                     ["Tech", "Tech"],
                     ["Sports", "Sports"],
                     ["GK", "GK"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v} className="bg-card text-foreground">
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="qdiff" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+                  Difficulty
+                </label>
+                <select
+                  id="qdiff"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as typeof difficulty)}
+                  className="cursor-pointer bg-transparent font-bold text-neon outline-none"
+                >
+                  {[
+                    ["mixed", "All levels"],
+                    ["easy", "Easy (1x)"],
+                    ["medium", "Medium (1.25x)"],
+                    ["hard", "Hard (1.5x)"],
                   ].map(([v, l]) => (
                     <option key={v} value={v} className="bg-card text-foreground">
                       {l}

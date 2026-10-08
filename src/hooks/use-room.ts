@@ -12,6 +12,7 @@ export type Room = {
   question_seconds: number;
   royale: boolean;
   category: string;
+  difficulty: string;
   team_size: number;
 };
 export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null; team: string | null };
