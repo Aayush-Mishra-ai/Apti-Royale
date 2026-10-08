@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Users, Zap, ShieldCheck, Trophy } from "lucide-react";
-import { createRoom, getWorldRanking } from "@/lib/quiz.functions";
+import { createRoom, getWorldRanking, joinRoom, nextQuestion } from "@/lib/quiz.functions";
 
 export const Route = createFileRoute("/")({
   loader: () => getWorldRanking(),
@@ -26,6 +26,8 @@ function Home() {
   const world = Route.useLoaderData();
   const navigate = useNavigate();
   const create = useServerFn(createRoom);
+  const join = useServerFn(joinRoom);
+  const start = useServerFn(nextQuestion);
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
   const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal" | "Science" | "Tech" | "Sports" | "GK">("mixed");
@@ -46,6 +48,27 @@ function Home() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create a room.");
       setLoading(false);
+    }
+  }
+
+  const [soloName, setSoloName] = useState("");
+  const [soloLoading, setSoloLoading] = useState(false);
+  const [soloError, setSoloError] = useState<string | null>(null);
+  async function solo() {
+    const name = soloName.trim();
+    if (!name) return;
+    setSoloLoading(true);
+    setSoloError(null);
+    try {
+      const r = await create({ data: { seconds: 20, count, royale: false, category, teamSize: 1, difficulty, autoControl: true } });
+      localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
+      const p = await join({ data: { code: r.code, name } });
+      localStorage.setItem(`aptiroyale:player:${r.code}`, JSON.stringify({ ...p, name }));
+      await start({ data: { code: r.code, hostToken: r.hostToken } });
+      navigate({ to: "/play/$code", params: { code: r.code } });
+    } catch (e) {
+      setSoloError(e instanceof Error ? e.message : "Could not start the game.");
+      setSoloLoading(false);
     }
   }
 
@@ -103,6 +126,32 @@ function Home() {
                 GO
               </button>
             </div>
+          </form>
+
+          {/* Solo */}
+          <form
+            className="col-span-2 rounded-3xl border border-accent/30 bg-accent/5 p-5 backdrop-blur-xl"
+            onSubmit={(e) => { e.preventDefault(); solo(); }}
+          >
+            <h2 className="mb-1 font-display text-2xl tracking-wide text-accent">Single Player</h2>
+            <p className="mb-3 text-xs text-muted-foreground">Play alone, no host needed. Uses the category, difficulty and question count below.</p>
+            <div className="flex gap-2">
+              <input
+                value={soloName}
+                onChange={(e) => setSoloName(e.target.value.slice(0, 20))}
+                placeholder="Your nickname"
+                aria-label="Nickname for single player"
+                className="w-full min-w-0 rounded-xl border border-border bg-background/60 px-4 py-3 font-bold text-foreground outline-none focus:border-accent"
+              />
+              <button
+                type="submit"
+                disabled={!soloName.trim() || soloLoading}
+                className="rounded-xl bg-accent px-5 font-bold text-accent-foreground transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+              >
+                {soloLoading ? "..." : "PLAY"}
+              </button>
+            </div>
+            {soloError && <p className="mt-2 text-sm text-destructive">{soloError}</p>}
           </form>
 
           {/* Host */}
