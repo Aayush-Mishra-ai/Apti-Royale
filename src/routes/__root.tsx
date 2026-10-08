@@ -78,16 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Ascent — AI Career Roadmapper" },
+      { title: "AptiQuiz — Live Aptitude Quiz" },
       {
         name: "description",
         content:
-          "Turn any dream job into an interactive, zoomable skill-tree roadmap with AI coaching on every step.",
+          "Live multiplayer aptitude quiz for placement prep.",
       },
-      { property: "og:title", content: "Ascent — AI Career Roadmapper" },
+      { property: "og:title", content: "AptiQuiz — Live Aptitude Quiz" },
       {
         property: "og:description",
-        content: "Name your dream job. Get an interactive skill map you can climb, with AI coaching on every step.",
+        content: "Live multiplayer aptitude quiz for placement prep.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
