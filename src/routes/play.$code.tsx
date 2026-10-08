@@ -102,9 +102,10 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
 
 function Game({ code, session }: { code: string; session: Session }) {
   const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
-  const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze ? FREEZE_SECONDS : 0);
+  const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze || (local.idx === question?.idx && local.used.includes("freeze")) ? FREEZE_SECONDS : 0);
   const activate = useServerFn(activatePowerup);
   const [powerBusy, setPowerBusy] = useState(false);
+  const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const submit = useServerFn(submitAnswer);
   const [picked, setPicked] = useState<number | null>(null);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
@@ -122,14 +123,26 @@ function Game({ code, session }: { code: string; session: Session }) {
   const myChoice = question?.myChoice ?? picked;
   const spectator = me ? me.eliminated_at !== null : false;
   const alive = players.filter((p) => p.eliminated_at === null);
-  const removed = question?.power?.removed ?? [];
+  const cur = local.idx === question?.idx ? local : { used: [] as PowerKind[], removed: [] as number[] };
+  const removed = question?.power?.removed.length ? question.power.removed : cur.removed;
+  const usedAll = [...new Set([...(question?.power?.used ?? []), ...local.used])];
+  const activeNow = {
+    fifty: removed.length > 0,
+    double: !!question?.power?.double || cur.used.includes("double"),
+    freeze: !!question?.power?.freeze || cur.used.includes("freeze"),
+  };
 
   async function power(kind: PowerKind) {
     if (!question || powerBusy) return;
     setPowerBusy(true);
     try {
-      await activate({ data: { code, playerId: session.playerId, token: session.token, idx: question.idx, kind } });
-      await reloadQuestion();
+      const r = await activate({ data: { code, playerId: session.playerId, token: session.token, idx: question.idx, kind } });
+      setLocal((l) => ({
+        idx: question.idx,
+        used: [...l.used, kind],
+        removed: kind === "fifty" ? r.removed : l.idx === question.idx ? l.removed : [],
+      }));
+      reloadQuestion();
     } catch (e) {
       setSubmitErr(e instanceof Error ? e.message : "Power-up failed.");
     } finally {
@@ -173,12 +186,12 @@ function Game({ code, session }: { code: string; session: Session }) {
 
       {room.status === "question" && question && (
         <section className="mt-6 space-y-5">
-          <TimerBar left={left} total={question.seconds + (question.power?.freeze ? FREEZE_SECONDS : 0)} />
+          <TimerBar left={left} total={question.seconds + (activeNow.freeze ? FREEZE_SECONDS : 0)} />
           <QuestionHeader q={question} />
           {!spectator && question.power && (
             <PowerBar
-              used={question.power.used}
-              active={{ fifty: removed.length > 0, double: question.power.double, freeze: question.power.freeze }}
+              used={usedAll}
+              active={activeNow}
               disabled={powerBusy || myChoice !== null || left <= 0}
               onUse={power}
             />
