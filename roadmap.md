@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Add host-selectable automatic rounds that continue from player screens
+- [ ] Add AI answer coaching and shared round review countdown
+- [ ] Verify automatic play without the host and preserve manual mode
+
 - [x] Quiz categories (host picks Quant/Logical/Verbal/Mixed)
 - [x] Dark/light theme toggle
 - [x] World ranking (global all-time leaderboard across rooms)

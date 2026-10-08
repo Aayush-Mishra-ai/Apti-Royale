@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_review_state: {
+        Row: {
+          id: boolean
+          paused: boolean
+          reason: string | null
+        }
+        Insert: {
+          id?: boolean
+          paused?: boolean
+          reason?: string | null
+        }
+        Update: {
+          id?: boolean
+          paused?: boolean
+          reason?: string | null
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           choice: number
@@ -233,14 +251,17 @@ export type Database = {
       room_secrets: {
         Row: {
           host_token: string
+          review_started_at: string | null
           room_id: string
         }
         Insert: {
           host_token: string
+          review_started_at?: string | null
           room_id: string
         }
         Update: {
           host_token?: string
+          review_started_at?: string | null
           room_id?: string
         }
         Relationships: [
@@ -255,12 +276,15 @@ export type Database = {
       }
       rooms: {
         Row: {
+          ai_error: string | null
+          auto_control: boolean
           category: string
           code: string
           created_at: string
           current_index: number
           difficulty: string
           id: string
+          phase_started_at: string | null
           question_seconds: number
           question_started_at: string | null
           royale: boolean
@@ -269,12 +293,15 @@ export type Database = {
           total_questions: number
         }
         Insert: {
+          ai_error?: string | null
+          auto_control?: boolean
           category?: string
           code: string
           created_at?: string
           current_index?: number
           difficulty?: string
           id?: string
+          phase_started_at?: string | null
           question_seconds?: number
           question_started_at?: string | null
           royale?: boolean
@@ -283,12 +310,15 @@ export type Database = {
           total_questions?: number
         }
         Update: {
+          ai_error?: string | null
+          auto_control?: boolean
           category?: string
           code?: string
           created_at?: string
           current_index?: number
           difficulty?: string
           id?: string
+          phase_started_at?: string | null
           question_seconds?: number
           question_started_at?: string | null
           royale?: boolean
@@ -297,6 +327,32 @@ export type Database = {
           total_questions?: number
         }
         Relationships: []
+      }
+      round_reviews: {
+        Row: {
+          idx: number
+          review: string
+          room_id: string
+        }
+        Insert: {
+          idx: number
+          review: string
+          room_id: string
+        }
+        Update: {
+          idx?: number
+          review?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_reviews_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       world_rankings: {
         Row: {
@@ -334,6 +390,7 @@ export type Database = {
         Args: { _name: string; _score: number; _won: boolean }
         Returns: undefined
       }
+      claim_quiz_reviews: { Args: { _room: string }; Returns: boolean }
       record_answer: {
         Args: {
           _choice: number
@@ -367,6 +424,7 @@ export type Database = {
         }
         Returns: number
       }
+      tick_quiz: { Args: { _room: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

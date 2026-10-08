@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getQuestion } from "@/lib/quiz.functions";
+import { getQuestion, tickGame } from "@/lib/quiz.functions";
+import { canTickGame, REVIEW_SECONDS } from "@/lib/auto-control";
 
 export type Room = {
   id: string;
@@ -14,6 +15,9 @@ export type Room = {
   category: string;
   difficulty: string;
   team_size: number;
+  auto_control: boolean;
+  phase_started_at: string | null;
+  ai_error: string | null;
 };
 export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null; team: string | null };
 export type Question = NonNullable<Awaited<ReturnType<typeof getQuestion>>>;
@@ -26,7 +30,9 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
   const [clockOffset, setClockOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fetchQ = useServerFn(getQuestion);
+  const tickGameFn = useServerFn(tickGame);
   const roomRef = useRef<Room | null>(null);
+  const questionRequest = useRef(0);
 
   const loadPlayers = useCallback(async (roomId: string) => {
     const { data } = await supabase
@@ -39,8 +45,10 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
   }, []);
 
   const loadQuestion = useCallback(async () => {
+    const request = ++questionRequest.current;
     try {
       const q = await fetchQ({ data: { code, playerId, token } });
+      if (request !== questionRequest.current) return;
       setQuestion(q);
       if (q) setClockOffset(new Date(q.serverNow).getTime() - Date.now());
     } catch {
@@ -86,7 +94,38 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
     return () => clearInterval(t);
   }, [pollAnswers, room?.status, loadQuestion]);
 
+  useEffect(() => {
+    if (!room || !token || !canTickGame(room.auto_control, room.status)) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const run = async () => {
+      try {
+        await tickGameFn({ data: { code, playerId, token } });
+        const { data } = await supabase.from("rooms").select("*").eq("code", code).maybeSingle();
+        if (!cancelled && data) { setError(null); setRoom(data); await loadQuestion(); await loadPlayers(data.id); }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Connection interrupted.");
+      }
+      if (!cancelled) timer = setTimeout(run, 1500);
+    };
+    run();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [room?.auto_control, room?.status, code, playerId, token, tickGameFn, loadQuestion, loadPlayers]);
+
   return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion };
+}
+
+export function usePhaseCountdown(room: Room | null, clockOffset: number) {
+  const [left, setLeft] = useState(REVIEW_SECONDS);
+  useEffect(() => {
+    if (!room?.phase_started_at) return;
+    const end = new Date(room.phase_started_at).getTime() + REVIEW_SECONDS * 1000;
+    const update = () => setLeft(Math.max(0, Math.ceil((end - Date.now() - clockOffset) / 1000)));
+    update();
+    const timer = setInterval(update, 250);
+    return () => clearInterval(timer);
+  }, [room?.phase_started_at, clockOffset]);
+  return left;
 }
 
 export function useCountdown(q: Question | null, clockOffset: number, extra = 0) {
