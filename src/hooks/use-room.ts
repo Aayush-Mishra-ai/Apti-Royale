@@ -12,8 +12,9 @@ export type Room = {
   question_seconds: number;
   royale: boolean;
   category: string;
+  team_size: number;
 };
-export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null };
+export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null; team: string | null };
 export type Question = NonNullable<Awaited<ReturnType<typeof getQuestion>>>;
 
 /** Live room + leaderboard via realtime; question payload fetched from the server referee. */
@@ -29,7 +30,7 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
   const loadPlayers = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("players")
-      .select("id, name, score, correct_count, streak, created_at, eliminated_at")
+      .select("id, name, score, correct_count, streak, created_at, eliminated_at, team")
       .eq("room_id", roomId)
       .order("score", { ascending: false })
       .order("created_at");
