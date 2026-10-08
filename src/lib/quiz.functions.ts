@@ -285,21 +285,24 @@ export const getQuestion = createServerFn({ method: "POST" })
     const pendingFreeze = (uses ?? []).some((u) => u.idx === room.current_index && u.kind === "freeze" && !answeredIds.has(u.player_id));
 
     let power: { used: string[]; removed: number[]; double: boolean; freeze: boolean } | null = null;
-    if (data.playerId && data.token) {
-      const secret = secretRes.data as { token: string } | null;
-      if (secret && secret.token === data.token) {
-        const mineUses = (uses ?? []).filter((u) => u.player_id === data.playerId);
-        const cur = (mineUses ?? []).filter((u) => u.idx === room.current_index);
-        power = {
-          used: (mineUses ?? []).map((u) => u.kind),
-          removed: cur.find((u) => u.kind === "fifty")?.removed ?? [],
-          double: cur.some((u) => u.kind === "double"),
-          freeze: cur.some((u) => u.kind === "freeze"),
-        };
-      }
+    // A caller only sees their own choice and points once they hold that player's
+    // token AND that player belongs to this room. Otherwise anyone with a room
+    // code could read another player's live answer.
+    const inRoom = !!data.playerId && (roomPlayers ?? []).some((p) => p.id === data.playerId);
+    const secret = secretRes.data as { token: string } | null;
+    const verified = !!(data.playerId && data.token && secret && secret.token === data.token && inRoom);
+    if (verified && data.playerId) {
+      const mineUses = (uses ?? []).filter((u) => u.player_id === data.playerId);
+      const cur = (mineUses ?? []).filter((u) => u.idx === room.current_index);
+      power = {
+        used: (mineUses ?? []).map((u) => u.kind),
+        removed: cur.find((u) => u.kind === "fifty")?.removed ?? [],
+        double: cur.some((u) => u.kind === "double"),
+        freeze: cur.some((u) => u.kind === "freeze"),
+      };
     }
     const distribution = q.options.map((_, i) => (answers ?? []).filter((a) => a.choice === i).length);
-    const mine = data.playerId ? (answers ?? []).find((a) => a.player_id === data.playerId) : undefined;
+    const mine = verified ? (answers ?? []).find((a) => a.player_id === data.playerId) : undefined;
     const reviewRow = review.data as { review: string } | null;
 
     return {
