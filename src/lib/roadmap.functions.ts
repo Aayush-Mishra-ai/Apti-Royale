@@ -7,10 +7,14 @@ import {
   type NodeAdvice,
 } from "./roadmap-schema";
 
-const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+const AI_URL = "https://ai.gateway.lovable.dev/v1/responses";
+const MODEL = "openai/gpt-6-astra";
 
-async function callAI(system: string, user: string, jsonSchema: object): Promise<string> {
+/**
+ * Streams a structured JSON answer from the Lovable AI Gateway Responses API.
+ * We accumulate the output_text deltas and parse the completed JSON payload.
+ */
+async function callAI(instructions: string, input: string, jsonSchema: object): Promise<string> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI is not configured. Add the AI Gateway key and retry.");
 
@@ -19,26 +23,76 @@ async function callAI(system: string, user: string, jsonSchema: object): Promise
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "X-Lovable-AIG-SDK": "fetch",
     },
     body: JSON.stringify({
       model: MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_schema", json_schema: { name: "output", strict: true, schema: jsonSchema } },
-      temperature: 0.7,
+      stream: true,
+      store: false,
+      include: ["reasoning.encrypted_content"],
+      reasoning: { effort: "low", summary: "auto" },
+      instructions,
+      input,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "output",
+          strict: true,
+          schema: jsonSchema,
+        },
+      },
     }),
   });
 
-  if (!res.ok) {
+  if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
     throw new Error(`The AI service returned an error (${res.status}). ${text.slice(0, 200)}`);
   }
-  const json = await res.json();
-  const content: string | undefined = json?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("The AI service returned an empty response. Try again.");
-  return content;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let output = "";
+  let done = false;
+
+  while (!done) {
+    const { done: streamDone, value } = await reader.read();
+    if (streamDone) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const payload = trimmed.slice(5).trim();
+      if (payload === "[DONE]") { done = true; break; }
+      try {
+        const event = JSON.parse(payload);
+        if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
+          output += event.delta;
+        } else if (event.type === "response.completed" && !output) {
+          // Fallback: collect text parts from the final response object.
+          const parts = event.response?.output ?? [];
+          for (const item of parts) {
+            if (item.type === "message") {
+              for (const c of item.content ?? []) {
+                if (c.type === "output_text" && typeof c.text === "string") output += c.text;
+              }
+            }
+          }
+        } else if (event.type === "error" || event.type === "response.failed") {
+          throw new Error("The AI service failed mid-response. Try again.");
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) continue; // partial/heartbeat line
+        throw e;
+      }
+    }
+  }
+
+  if (!output.trim()) throw new Error("The AI service returned an empty response. Try again.");
+  return output;
 }
 
 function extractJson(raw: string): unknown {
@@ -104,7 +158,7 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       .parse(data)
   )
   .handler(async ({ data }): Promise<Roadmap> => {
-    const system = [
+    const instructions = [
       "You are an expert career coach who builds dependency-based learning roadmaps as DAGs.",
       "Rules:",
       "- 4 to 6 stages, 16 to 26 total nodes.",
@@ -112,13 +166,13 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       "- First-stage nodes have empty prereqIds. Every later node has 1-3 prereqs.",
       "- Each stage ends with one 'milestone' node synthesizing the stage.",
       "- Mix kinds: mostly skills, 3-5 projects, 1-3 credentials/certifications where genuinely valued.",
-      "- estWeeks must be realistic for ~10 hours/week of effort. Total should match stage timeframes.",
+      "- estWeeks must be realistic for ~10 hours/week of effort. Totals should match stage timeframes.",
       "- Be specific: name actual technologies, companies, exam names, portfolio pieces — not generic advice.",
       "- If the learner already listed skills, do not make those prerequisites; route around them or deepen them.",
       "- Titles max 40 characters. No emoji.",
     ].join("\n");
 
-    const user = [
+    const input = [
       `Dream role: ${data.dreamJob}`,
       data.currentSkills?.trim()
         ? `Already known / current position: ${data.currentSkills.trim()}`
@@ -126,7 +180,7 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       "Build the roadmap JSON now.",
     ].join("\n");
 
-    const raw = await callAI(system, user, roadmapJsonSchema);
+    const raw = await callAI(instructions, input, roadmapJsonSchema);
     const parsed = roadmapSchema.safeParse(extractJson(raw));
     if (!parsed.success) throw new Error("The AI produced an invalid roadmap. Try generating again.");
     return parsed.data;
@@ -158,14 +212,14 @@ export const getNodeAdvice = createServerFn({ method: "POST" })
       .parse(data)
   )
   .handler(async ({ data }): Promise<NodeAdvice> => {
-    const system =
+    const instructions =
       "You are a sharp, no-fluff career coach. Give specific, current, actionable advice. Name real resources (docs, courses, books, channels). Never invent paid credentials. Reply with JSON only.";
-    const user = [
+    const input = [
       `Dream role: ${data.dreamRole}`,
       `Learner has already covered: ${data.knownSkills.join(", ") || "nothing yet"}`,
       `Current step (${data.kind}): ${data.nodeTitle} — ${data.nodeDescription}`,
     ].join("\n");
-    const raw = await callAI(system, user, adviceJsonSchema);
+    const raw = await callAI(instructions, input, adviceJsonSchema);
     const parsed = nodeAdviceSchema.safeParse(extractJson(raw));
     if (!parsed.success) throw new Error("Could not read the advice. Try again.");
     return parsed.data;
