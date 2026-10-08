@@ -117,7 +117,20 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
     return () => { cancelled = true; clearTimeout(timer); };
   }, [room?.auto_control, room?.status, code, playerId, token, tickGameFn, loadQuestion, loadPlayers]);
 
-  return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion };
+  /** Ask the referee to advance right away (e.g. everyone has answered) instead of waiting for the next poll. */
+  const tickNow = useCallback(async () => {
+    const r = roomRef.current;
+    if (!r || !token || !canTickGame(r.auto_control, r.status)) return;
+    try {
+      await tickGameFn({ data: { code, playerId, token } });
+      const { data } = await supabase.from("rooms").select("*").eq("code", code).maybeSingle();
+      if (data && (data.status !== r.status || data.current_index !== r.current_index)) {
+        setRoom(data); roomRef.current = data; loadQuestion(); loadPlayers(data.id);
+      }
+    } catch { /* poll will retry */ }
+  }, [code, playerId, token, tickGameFn, loadQuestion, loadPlayers]);
+
+  return { room, players, question, clockOffset, error, reloadQuestion: loadQuestion, tickNow };
 }
 
 export function usePhaseCountdown(room: Room | null, clockOffset: number) {
