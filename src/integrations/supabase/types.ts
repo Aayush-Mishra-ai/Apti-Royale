@@ -286,6 +286,33 @@ export type Database = {
         }
         Relationships: []
       }
+      world_rankings: {
+        Row: {
+          best_score: number
+          games: number
+          name: string
+          total_score: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          best_score?: number
+          games?: number
+          name: string
+          total_score?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          best_score?: number
+          games?: number
+          name?: string
+          total_score?: number
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
