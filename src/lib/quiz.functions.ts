@@ -343,13 +343,14 @@ export const submitAnswer = createServerFn({ method: "POST" })
     // Run the independent checks in parallel so answering feels instant.
     const [{ data: secret }, { data: pl }, { data: myUses }, { data: rq }] = await Promise.all([
       db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle(),
-      db.from("players").select("eliminated_at").eq("id", data.playerId).maybeSingle(),
+      db.from("players").select("eliminated_at, room_id").eq("id", data.playerId).maybeSingle(),
       db.from("powerup_uses").select("kind").eq("player_id", data.playerId).eq("idx", data.idx),
       db.from("room_questions").select("questions(correct_index, difficulty)").eq("room_id", room.id).eq("idx", data.idx).maybeSingle(),
     ]);
     if (!secret || secret.token !== data.token) throw new Error("Not a player in this room.");
     if (room.status !== "question" || room.current_index !== data.idx) throw new Error("Too late — this question is closed.");
-    if (!pl || pl.eliminated_at !== null) throw new Error("You're spectating — eliminated players can't score.");
+    if (!pl || pl.room_id !== room.id) throw new Error("Not a player in this room.");
+    if (pl.eliminated_at !== null) throw new Error("You're spectating — eliminated players can't score.");
     const frozen = (myUses ?? []).some((u) => u.kind === "freeze");
     const doubled = (myUses ?? []).some((u) => u.kind === "double");
 
