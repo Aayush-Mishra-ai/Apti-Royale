@@ -41,19 +41,15 @@ export function RoadmapCanvas({
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const dragRef = useRef<{ px: number; py: number; vx: number; vy: number } | null>(null);
 
-  const stageNameById = useMemo(
-    () => new Map(roadmap.stages.map((s) => [s.id, s.name])),
-    [roadmap.stages]
-  );
-  const layout = useMemo(() => layoutRoadmap(roadmap.nodes, stageNameById), [roadmap.nodes, stageNameById]);
+  const layout = useMemo(() => layoutRoadmap(roadmap.nodes, roadmap.stages), [roadmap.nodes, roadmap.stages]);
   const nodeById = useMemo(() => new Map(roadmap.nodes.map((n) => [n.id, n])), [roadmap.nodes]);
 
   const fit = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const { width: cw, height: ch } = el.getBoundingClientRect();
-    const pad = 80;
-    const k = Math.min(MIN_K * 2.4, Math.max(MIN_K, Math.min((cw - pad) / layout.width, (ch - pad) / layout.height, 1)));
+    const pad = 90;
+    const k = Math.max(MIN_K, Math.min((cw - pad) / layout.width, (ch - pad) / layout.height, 1));
     setView({
       k,
       x: (cw - layout.width * k) / 2 - layout.minX * k,
@@ -122,12 +118,12 @@ export function RoadmapCanvas({
         <svg className="h-full w-full select-none">
           <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
             {/* Stage column headers */}
-            {[...layout.stageByDepth.entries()].map(([depth, name]) => {
-              const first = [...layout.positions.values()].find((p) => p.depth === depth);
+            {[...layout.labelByCol.entries()].map(([col, name]) => {
+              const first = [...layout.positions.values()].find((p) => p.col === col);
               if (!first || !name) return null;
               return (
                 <text
-                  key={`stage-${depth}`}
+                  key={`stage-${col}`}
                   x={first.x + NODE_W / 2}
                   y={first.y - 90}
                   textAnchor="middle"
