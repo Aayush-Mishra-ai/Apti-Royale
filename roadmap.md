@@ -1,7 +1,7 @@
 # Roadmap
 
 - [x] Give Pro mode a distinct palette and lightweight Goku logo animation
-- [ ] Verify Pro appearance, theme isolation and reduced-motion behavior
+- [x] Verify Pro appearance, theme isolation and reduced-motion behavior
 
 - [x] Add host-selectable automatic rounds that continue from player screens
 - [x] Add AI answer coaching and shared round review countdown
