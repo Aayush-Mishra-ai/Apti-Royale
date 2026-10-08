@@ -77,10 +77,11 @@ function Home() {
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 select-none">
       <div className="pointer-events-none absolute inset-0 hero-glow" />
       <div className="pointer-events-none absolute inset-0 ember-grid" />
-      <div className="relative z-10 flex w-full max-w-[390px] flex-col gap-4">
+      <div className="embers" aria-hidden><span style={{left:"0%",animationDuration:"8s",animationDelay:"-0.0s"}} /><span style={{left:"37%",animationDuration:"11s",animationDelay:"-1.7s"}} /><span style={{left:"74%",animationDuration:"14s",animationDelay:"-3.4s"}} /><span style={{left:"11%",animationDuration:"10s",animationDelay:"-5.1s"}} /><span style={{left:"48%",animationDuration:"13s",animationDelay:"-6.8s"}} /><span style={{left:"85%",animationDuration:"9s",animationDelay:"-8.5s"}} /><span style={{left:"22%",animationDuration:"12s",animationDelay:"-1.2s"}} /><span style={{left:"59%",animationDuration:"8s",animationDelay:"-2.9s"}} /><span style={{left:"96%",animationDuration:"11s",animationDelay:"-4.6s"}} /><span style={{left:"33%",animationDuration:"14s",animationDelay:"-6.3s"}} /><span style={{left:"70%",animationDuration:"10s",animationDelay:"-8.0s"}} /><span style={{left:"7%",animationDuration:"13s",animationDelay:"-0.7s"}} /><span style={{left:"44%",animationDuration:"9s",animationDelay:"-2.4s"}} /><span style={{left:"81%",animationDuration:"12s",animationDelay:"-4.1s"}} /></div>
+      <div className="relative z-10 flex w-full max-w-[390px] flex-col gap-4 rise-in">
         {/* Hero */}
         <header className="pt-4 pb-2 text-center">
-          <h1 className="font-display text-7xl leading-none tracking-tight select-none">
+          <h1 className="float-slow font-display text-7xl leading-none tracking-tight select-none">
             APTI{" "}
             <span className="text-glow-primary bg-gradient-to-br from-primary via-accent to-neon bg-clip-text text-transparent">
               ROYALE
