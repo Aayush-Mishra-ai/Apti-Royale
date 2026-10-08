@@ -161,6 +161,7 @@ function HostPage() {
             </div>
           </div>
           <aside>
+            {room.team_size > 1 && <TeamStandings players={players} />}
             <h2 className="mb-3 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Live leaderboard</h2>
             <Leaderboard players={players} limit={10} />
           </aside>
@@ -195,6 +196,29 @@ function HostPage() {
         </section>
       )}
     </main>
+  );
+}
+
+/** Aggregate team scores, highest first. */
+function TeamStandings({ players }: { players: { team: string | null; score: number }[] }) {
+  const totals = new Map<string, number>();
+  for (const p of players) if (p.team) totals.set(p.team, (totals.get(p.team) ?? 0) + p.score);
+  const rows = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="mb-5 rounded-2xl border border-accent/30 bg-accent/5 p-4">
+      <h2 className="mb-2 font-mono text-[11px] uppercase tracking-widest text-accent">Team standings</h2>
+      <ol className="flex flex-col gap-1">
+        {rows.map(([team, score], i) => (
+          <li key={team} className="flex items-center justify-between text-sm">
+            <span className="text-foreground">
+              <span className="mr-2 font-mono text-xs text-muted-foreground">#{i + 1}</span>
+              {team}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">{score} pts</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
