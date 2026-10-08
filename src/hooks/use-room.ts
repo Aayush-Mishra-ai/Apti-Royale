@@ -11,7 +11,7 @@ export type Room = {
   total_questions: number;
   question_seconds: number;
 };
-export type Player = { id: string; name: string; score: number; correct_count: number; created_at: string };
+export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string };
 export type Question = NonNullable<Awaited<ReturnType<typeof getQuestion>>>;
 
 /** Live room + leaderboard via realtime; question payload fetched from the server referee. */
@@ -27,7 +27,7 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false) {
   const loadPlayers = useCallback(async (roomId: string) => {
     const { data } = await supabase
       .from("players")
-      .select("id, name, score, correct_count, created_at")
+      .select("id, name, score, correct_count, streak, created_at")
       .eq("room_id", roomId)
       .order("score", { ascending: false })
       .order("created_at");

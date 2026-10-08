@@ -78,13 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AptiQuiz — Live Aptitude Quiz" },
+      { title: "AptiRoyale — Live Aptitude Quiz" },
       {
         name: "description",
         content:
           "Live multiplayer aptitude quiz for placement prep.",
       },
-      { property: "og:title", content: "AptiQuiz — Live Aptitude Quiz" },
+      { property: "og:title", content: "AptiRoyale — Live Aptitude Quiz" },
       {
         property: "og:description",
         content: "Live multiplayer aptitude quiz for placement prep.",
