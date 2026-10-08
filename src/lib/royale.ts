@@ -48,3 +48,11 @@ export function buildReport(rows: { category: string; correct: boolean }[]) {
     tip: weakest ? (CATEGORY_TIPS[weakest.category] ?? "Revisit the basics of this topic and time yourself on 10 questions.") : null,
   };
 }
+
+// Harder questions are worth more: base speed points are multiplied by this.
+export const DIFFICULTY_MULTIPLIER: Record<string, number> = { easy: 1, medium: 1.25, hard: 1.5 };
+export function basePoints(correct: boolean, speed: number, difficulty: string): number {
+  if (!correct) return 0;
+  const s = Math.max(0, Math.min(1, speed));
+  return Math.round((500 + 500 * s) * (DIFFICULTY_MULTIPLIER[difficulty] ?? 1));
+}

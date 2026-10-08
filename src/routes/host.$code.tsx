@@ -101,6 +101,9 @@ function HostPage() {
               <span className="ml-2 rounded bg-primary/15 px-2 py-0.5 text-primary">
                 {room.category === "mixed" ? "Mixed" : room.category}
               </span>
+              <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 capitalize text-accent">
+                {room.difficulty === "mixed" ? "All levels" : room.difficulty}
+              </span>
               {room.royale && <span className="ml-2 rounded bg-destructive/15 px-2 py-0.5 text-destructive">Royale mode</span>}
             </p>
             <button

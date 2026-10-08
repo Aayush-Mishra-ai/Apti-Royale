@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { FREEZE_SECONDS, buildReport, isEliminationPoint, pickEliminated } from "./royale";
+import { FREEZE_SECONDS, basePoints, buildReport, isEliminationPoint, pickEliminated } from "./royale";
 
 const MAX_PLAYERS = 50;
 const GRACE_MS = 1500; // network slack after the timer ends
@@ -40,15 +40,19 @@ export const createRoom = createServerFn({ method: "POST" })
         royale: z.boolean().default(false),
         category: z.enum(["mixed", "Quant", "Logical", "Verbal", "Science", "Tech", "Sports", "GK"]).default("mixed"),
         teamSize: z.union([z.literal(1), z.literal(2), z.literal(4)]).default(1),
+        difficulty: z.enum(["mixed", "easy", "medium", "hard"]).default("mixed"),
       })
       .parse(d)
   )
   .handler(async ({ data }) => {
     const db = await admin();
-    let qq = db.from("questions").select("id");
+    let qq = db.from("questions").select("id, difficulty");
     if (data.category !== "mixed") qq = qq.eq("category", data.category);
     const { data: qs } = await qq;
-    const ids = (qs ?? []).map((q) => q.id).sort(() => Math.random() - 0.5).slice(0, data.count);
+    const shuffled = (qs ?? []).sort(() => Math.random() - 0.5);
+    // Chosen difficulty first; top up with others if the pool is too small.
+    const ordered = data.difficulty === "mixed" ? shuffled : [...shuffled.filter((q) => q.difficulty === data.difficulty), ...shuffled.filter((q) => q.difficulty !== data.difficulty)];
+    const ids = ordered.map((q) => q.id).slice(0, data.count);
     if (ids.length === 0) throw new Error("No questions available");
 
     let room: { id: string; code: string } | null = null;
@@ -62,6 +66,7 @@ export const createRoom = createServerFn({ method: "POST" })
           royale: data.royale,
           category: data.category,
           team_size: data.teamSize,
+          difficulty: data.difficulty,
         })
         .select("id, code")
         .maybeSingle();
@@ -275,10 +280,10 @@ export const submitAnswer = createServerFn({ method: "POST" })
     if (elapsed < 0) throw new Error("Wait for the question to open.");
 
     const { data: rq } = await db.from("room_questions").select("question_id").eq("room_id", room.id).eq("idx", data.idx).maybeSingle();
-    const { data: q } = await db.from("questions").select("correct_index").eq("id", rq!.question_id).maybeSingle();
+    const { data: q } = await db.from("questions").select("correct_index, difficulty").eq("id", rq!.question_id).maybeSingle();
     const correct = q!.correct_index === data.choice;
     const speed = Math.max(0, 1 - Math.min(elapsed, myLimit) / myLimit);
-    const points = (correct ? 500 + Math.round(500 * speed) : 0) * (doubled ? 2 : 1);
+    const points = basePoints(correct, speed, q!.difficulty) * (doubled ? 2 : 1);
 
     const { data: ok } = await db.rpc("record_answer_v3", {
       _room: room.id,

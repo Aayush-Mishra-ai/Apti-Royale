@@ -27,6 +27,9 @@ export function QuestionHeader({ q }: { q: Question }) {
       <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
         <span>Q{q.idx + 1}/{q.total}</span>
         <span className="rounded-full border border-border px-2 py-0.5 text-primary">{q.category}</span>
+        <span className="rounded-full border border-border px-2 py-0.5 text-accent">
+          {q.difficulty} · {q.difficulty === "hard" ? "1.5x" : q.difficulty === "medium" ? "1.25x" : "1x"}
+        </span>
       </div>
       <h2 className="mt-3 text-xl font-semibold leading-snug text-foreground sm:text-2xl">{q.prompt}</h2>
     </div>

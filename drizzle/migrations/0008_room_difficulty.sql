@@ -1,0 +1,1 @@
+ALTER TABLE public.rooms ADD COLUMN difficulty text NOT NULL DEFAULT 'mixed';

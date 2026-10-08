@@ -256,6 +256,7 @@ export type Database = {
           code: string
           created_at: string
           current_index: number
+          difficulty: string
           id: string
           question_seconds: number
           question_started_at: string | null
@@ -269,6 +270,7 @@ export type Database = {
           code: string
           created_at?: string
           current_index?: number
+          difficulty?: string
           id?: string
           question_seconds?: number
           question_started_at?: string | null
@@ -282,6 +284,7 @@ export type Database = {
           code?: string
           created_at?: string
           current_index?: number
+          difficulty?: string
           id?: string
           question_seconds?: number
           question_started_at?: string | null
