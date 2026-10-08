@@ -15,6 +15,13 @@
       "when": 1791440024880,
       "tag": "0001_aptiroyale_streaks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791446435908,
+      "tag": "0002_royale_mode_powerups",
+      "breakpoints": true
     }
   ]
 }
