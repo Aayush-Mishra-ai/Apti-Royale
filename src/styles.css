@@ -142,6 +142,41 @@
   --sidebar-ring: oklch(0.52 0.22 27);
 }
 
+/* Pro mode — sleek high-contrast monochrome with a single ember accent */
+.pro {
+  --background: oklch(0.10 0.005 60);
+  --foreground: oklch(0.97 0.005 60);
+  --card: oklch(0.15 0.005 60);
+  --card-foreground: oklch(0.97 0.005 60);
+  --popover: oklch(0.15 0.005 60);
+  --popover-foreground: oklch(0.97 0.005 60);
+  --primary: oklch(0.92 0.005 60);
+  --primary-foreground: oklch(0.12 0.005 60);
+  --secondary: oklch(0.20 0.005 60);
+  --secondary-foreground: oklch(0.95 0.005 60);
+  --muted: oklch(0.20 0.005 60);
+  --muted-foreground: oklch(0.65 0.005 60);
+  --accent: oklch(0.71 0.19 55);
+  --accent-foreground: oklch(0.14 0.03 40);
+  --neon: oklch(0.84 0.17 90);
+  --neon-foreground: oklch(0.14 0.03 40);
+  --destructive: oklch(0.62 0.24 22);
+  --destructive-foreground: oklch(0.98 0.005 85);
+  --success: oklch(0.78 0.16 150);
+  --success-foreground: oklch(0.2 0.06 150);
+  --border: oklch(0.28 0.005 60);
+  --input: oklch(0.28 0.005 60);
+  --ring: oklch(0.92 0.005 60);
+  --sidebar: oklch(0.13 0.005 60);
+  --sidebar-foreground: oklch(0.97 0.005 60);
+  --sidebar-primary: oklch(0.92 0.005 60);
+  --sidebar-primary-foreground: oklch(0.12 0.005 60);
+  --sidebar-accent: oklch(0.20 0.005 60);
+  --sidebar-accent-foreground: oklch(0.95 0.005 60);
+  --sidebar-border: oklch(0.28 0.005 60);
+  --sidebar-ring: oklch(0.92 0.005 60);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

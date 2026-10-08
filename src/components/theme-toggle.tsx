@@ -1,34 +1,43 @@
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Crown, Moon, Sun } from "lucide-react";
 
 const KEY = "aptiroyale:theme";
+const THEMES = ["dark", "light", "pro"] as const;
+type Theme = (typeof THEMES)[number];
 
-/** Dark/light toggle; persists to localStorage, defaults to dark. */
+/** Dark/light/pro toggle; persists to localStorage, defaults to dark. */
 export function ThemeToggle() {
-  const [light, setLight] = useState(false);
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    setLight(document.documentElement.classList.contains("light"));
+    const el = document.documentElement;
+    setTheme(el.classList.contains("pro") ? "pro" : el.classList.contains("light") ? "light" : "dark");
   }, []);
 
   const toggle = () => {
-    const next = !light;
-    setLight(next);
-    document.documentElement.classList.toggle("light", next);
+    const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("light", next === "light");
+    document.documentElement.classList.toggle("pro", next === "pro");
     try {
-      localStorage.setItem(KEY, next ? "light" : "dark");
+      localStorage.setItem(KEY, next);
     } catch {
       /* private mode */
     }
   };
 
+  const Icon = theme === "pro" ? Crown : theme === "light" ? Moon : Sun;
+  const label =
+    theme === "dark" ? "Switch to light mode" : theme === "light" ? "Switch to pro mode" : "Switch to dark mode";
+
   return (
     <button
       onClick={toggle}
-      aria-label={light ? "Switch to dark mode" : "Switch to light mode"}
+      aria-label={label}
+      title={label}
       className="fixed right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-lg transition hover:bg-accent hover:text-accent-foreground"
     >
-      {light ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
