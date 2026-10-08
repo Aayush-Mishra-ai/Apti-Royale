@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RoundReview } from "@/components/round-review";
 import { nextQuestion, revealAnswer } from "@/lib/quiz.functions";
-import { useCountdown, useLeadIn, useRoom } from "@/hooks/use-room";
+import { useCountdown, useLeadIn, useRoom, usePhaseCountdown } from "@/hooks/use-room";
 import { EliminationScreen, GetReady, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 export const Route = createFileRoute("/host/$code")({
@@ -25,7 +27,8 @@ function HostPage() {
   const { code } = Route.useParams();
   const [token, setToken] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const { room, players, question, clockOffset, error } = useRoom(code, undefined, true);
+  const { room, players, question, clockOffset, error } = useRoom(code, undefined, true, token ?? undefined);
+  const phaseLeft = usePhaseCountdown(room, clockOffset);
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.hostExtraSeconds ?? 0);
   const lead = useLeadIn(room?.status === "question" ? question : null, clockOffset);
   const alive = players.filter((p) => p.eliminated_at === null);
@@ -51,7 +54,7 @@ function HostPage() {
 
   // Auto-reveal when time runs out or everyone answered.
   useEffect(() => {
-    if (!room || !question || room.status !== "question" || !token) return;
+    if (!room || room.auto_control || !question || room.status !== "question" || !token) return;
     if (revealedFor.current === question.idx) return;
     const allIn = alive.length > 0 && question.answeredCount >= alive.length;
     if (left <= 0 || allIn) {
@@ -93,6 +96,7 @@ function HostPage() {
         <section className="mt-10 grid gap-8 md:grid-cols-[1.2fr_1fr]">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Waiting for players…</h1>
+            <p className="mt-2 text-accent">{room.auto_control ? "Automatic arena · AI answer reviews" : "Host-controlled arena"}</p>
             <p className="mt-2 text-muted-foreground">
               Players open <span className="font-mono text-foreground">{joinUrl || "this site"}</span> or enter the code on the home page.
             </p>
@@ -106,13 +110,13 @@ function HostPage() {
               </span>
               {room.royale && <span className="ml-2 rounded bg-destructive/15 px-2 py-0.5 text-destructive">Royale mode</span>}
             </p>
-            <button
+            <Button
               onClick={() => act(next)}
               disabled={busy || players.length === 0}
               className="mt-6 rounded-xl bg-primary px-8 py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
             >
-              {players.length === 0 ? "Need at least 1 player" : "Start game"}
-            </button>
+              {busy ? "Preparing answer reviews…" : players.length === 0 ? "Need at least 1 player" : "Start game"}
+            </Button>
           </div>
           <div className="flex flex-wrap content-start gap-2" aria-live="polite">
             {players.map((p) => (
@@ -124,7 +128,7 @@ function HostPage() {
         </section>
       )}
 
-      {(room.status === "question" || room.status === "reveal") && question && (
+      {(room.status === "question" || room.status === "reveal") && question && (room.status !== "reveal" || question.correctIndex !== null) && (
         <section className="mt-8 grid gap-8 md:grid-cols-[1.4fr_1fr]">
           <div className="space-y-5">
             {room.status === "question" ? (
@@ -157,12 +161,12 @@ function HostPage() {
                 />
               ))}
             </div>
-            {question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
+            {room.auto_control && room.status === "reveal" ? <RoundReview room={room} question={question} remaining={phaseLeft} /> : question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
             <div className="flex items-center justify-between">
               <span className="font-mono text-sm text-muted-foreground">
                 {question.answeredCount}/{alive.length} answered{question.hostExtraSeconds > 0 && room.status === "question" ? " · freeze active" : ""}
               </span>
-              {room.status === "question" ? (
+              {room.auto_control ? <span className="text-xs text-accent">Automatic referee active</span> : room.status === "question" ? (
                 <button onClick={() => act(reveal)} disabled={busy} className="rounded-lg border border-border px-4 py-2 text-sm text-foreground hover:bg-accent">
                   Reveal now
                 </button>
@@ -188,13 +192,13 @@ function HostPage() {
       {room.status === "elimination" && (
         <section className="mx-auto mt-6 max-w-2xl">
           <EliminationScreen eliminated={players.filter((p) => p.eliminated_at === room.current_index)} left={alive.length} />
-          <button
+          {room.auto_control ? <p className="mt-4 text-center font-mono text-primary">Next round in {phaseLeft}s</p> : <Button
             onClick={() => act(next)}
             disabled={busy}
             className="mt-6 w-full rounded-xl bg-primary py-3.5 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             Next question
-          </button>
+          </Button>}
         </section>
       )}
 

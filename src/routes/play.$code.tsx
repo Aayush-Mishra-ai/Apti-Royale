@@ -5,7 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
 import { activatePowerup, getReport, joinRoom, submitAnswer } from "@/lib/quiz.functions";
 import { FREEZE_SECONDS, type PowerKind } from "@/lib/royale";
-import { useCountdown, useLeadIn, useRoom } from "@/hooks/use-room";
+import { useCountdown, useLeadIn, useRoom, usePhaseCountdown } from "@/hooks/use-room";
+import { RoundReview } from "@/components/round-review";
 import { EliminationScreen, GetReady, Leaderboard, OptionButton, QuestionHeader, TimerBar, WinnerScreen } from "@/components/quiz-ui";
 
 type Session = { playerId: string; token: string; name: string };
@@ -102,6 +103,7 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
 
 function Game({ code, session }: { code: string; session: Session }) {
   const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
+  const phaseLeft = usePhaseCountdown(room, clockOffset);
   const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze || (local.idx === question?.idx && local.used.includes("freeze")) ? FREEZE_SECONDS : 0);
   const lead = useLeadIn(room?.status === "question" ? question : null, clockOffset);
@@ -219,7 +221,7 @@ function Game({ code, session }: { code: string; session: Session }) {
         </section>
       )}
 
-      {room.status === "reveal" && question && (
+      {room.status === "reveal" && question && question.correctIndex !== null && (
         <section className="mt-6 space-y-5">
           <div
             className={`rounded-xl border p-4 text-center font-semibold ${
@@ -245,7 +247,7 @@ function Game({ code, session }: { code: string; session: Session }) {
               />
             ))}
           </div>
-          {question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
+          {room.auto_control ? <RoundReview room={room} question={question} remaining={phaseLeft} /> : question.explanation && <p className="text-sm text-muted-foreground">{question.explanation}</p>}
           <div>
             <h2 className="mb-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Top 5</h2>
             <Leaderboard players={players} highlightId={session.playerId} limit={5} />
@@ -254,11 +256,14 @@ function Game({ code, session }: { code: string; session: Session }) {
       )}
 
       {room.status === "elimination" && (
+        <>
         <EliminationScreen
           eliminated={players.filter((p) => p.eliminated_at === room.current_index)}
           left={alive.length}
           highlightId={spectator && me?.eliminated_at !== room.current_index ? undefined : session.playerId}
         />
+        {room.auto_control && <p className="mt-4 text-center font-mono text-primary">Next round in {phaseLeft}s</p>}
+        </>
       )}
 
       {room.status === "finished" && (

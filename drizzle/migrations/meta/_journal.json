@@ -71,6 +71,27 @@
       "when": 1791453589180,
       "tag": "0009_add_question_visuals",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791454292337,
+      "tag": "0010_automatic_quiz_control",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791454326617,
+      "tag": "0011_automatic_review_claim",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791455043702,
+      "tag": "0012_fix_automatic_referee_alias",
+      "breakpoints": true
     }
   ]
 }

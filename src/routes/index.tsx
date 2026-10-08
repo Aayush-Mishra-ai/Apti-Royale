@@ -32,6 +32,7 @@ function Home() {
   const [difficulty, setDifficulty] = useState<"mixed" | "easy" | "medium" | "hard">("mixed");
   const [teamSize, setTeamSize] = useState<1 | 2 | 4>(1);
   const [royale, setRoyale] = useState(true);
+  const [autoControl, setAutoControl] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count, royale, category, teamSize, difficulty } });
+      const r = await create({ data: { seconds: 20, count, royale, category, teamSize, difficulty, autoControl } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
@@ -107,6 +108,13 @@ function Home() {
           <div className="col-span-2 rounded-3xl border border-neon/30 bg-neon/5 p-5 backdrop-blur-xl">
             <h2 className="mb-4 font-display text-2xl tracking-wide text-neon">Host Arena</h2>
             <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="control" className="text-sm font-bold uppercase text-muted-foreground">Game control</label>
+                <select id="control" value={autoControl ? "auto" : "manual"} onChange={e => setAutoControl(e.target.value === "auto")} className="min-w-0 bg-transparent font-bold text-neon outline-none">
+                  <option value="auto" className="bg-card text-foreground">Automatic + AI review</option>
+                  <option value="manual" className="bg-card text-foreground">Host controlled</option>
+                </select>
+              </div>
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
                 <label htmlFor="qcat" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
                   Category
