@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import gokuStill from "@/assets/goku-pro.png";
-import gokuRage from "@/assets/goku-rage.mp4.asset.json";
+import gokuRage from "@/assets/goku-rage.webm.asset.json";
 
 export function ProFighter() {
   const [animate, setAnimate] = useState(false);
