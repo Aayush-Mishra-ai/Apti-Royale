@@ -103,17 +103,7 @@ async function recordWorld(db: Awaited<ReturnType<typeof admin>>, roomId: string
   if (!ps?.length) return;
   const winner = ps[0]!.name;
   for (const p of ps) {
-    await db.from("world_rankings").upsert(
-      {
-        name: p.name,
-        best_score: p.score, // raised below via RPC-style max? keep simple: max handled client-side is racy; use greatest via upsert conflict
-        total_score: p.score,
-        games: 1,
-        wins: p.name === winner ? 1 : 0,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "name", ignoreDuplicates: false }
-    );
+    await db.rpc("bump_world_ranking", { _name: p.name, _score: p.score, _won: p.name === winner });
   }
 }
 
