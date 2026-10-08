@@ -128,7 +128,19 @@ function HostPage() {
         <section className="mt-8 grid gap-8 md:grid-cols-[1.4fr_1fr]">
           <div className="space-y-5">
             {room.status === "question" ? (
-              <TimerBar left={left} total={question.seconds + question.hostExtraSeconds} />
+              <div className="flex items-center gap-5">
+                <div
+                  className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border font-display text-4xl leading-none ${
+                    left <= 5 ? "border-destructive/50 bg-destructive/10 text-destructive" : "border-primary/40 bg-primary/10 text-primary"
+                  }`}
+                  aria-hidden
+                >
+                  {Math.ceil(left)}
+                </div>
+                <div className="flex-1">
+                  <TimerBar left={left} total={question.seconds + question.hostExtraSeconds} />
+                </div>
+              </div>
             ) : (
               <p className="font-mono text-xs uppercase tracking-widest text-success">Answer revealed</p>
             )}
