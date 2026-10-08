@@ -13,6 +13,7 @@
 
 ## Technical decisions
 
-- AI calls go through the Lovable AI Gateway Responses API (`/v1/responses`, model `openai/gpt-6-astra`, streamed with `store: false` + strict `json_schema` output) inside `createServerFn` handlers in `src/lib/roadmap.functions.ts`. Why: it is the project's gateway default and keeps the API key server-side.
-- Roadmap state (the generated map and the "known" node set) lives in localStorage only; there is no database. Why: hackathon demo scope, no accounts needed.
-- Skill-tree layout is a custom stage-column DAG layout in `src/lib/tree-layout.ts` (one column per roadmap stage, barycenter row ordering), rendered as pan/zoom SVG in `src/components/roadmap-canvas.tsx`. No graph library. Why: zero dependencies and full control of the game-map aesthetic.
+- The server is the quiz referee: all game writes (create/join/advance/reveal/answer) go through `createServerFn` handlers in `src/lib/quiz.functions.ts` using the admin client; the browser can only read `rooms` and `players`. Why: cheat resistance — correct answers, timing and scoring never trust the client.
+- Answer timing uses the server clock (`question_started_at` vs handler `Date.now()`, small grace window); duplicate answers are blocked by a unique (player, idx) constraint inside the `record_answer` DB function. Why: tamper-proof speed scoring.
+- Identity is anonymous per-room secret tokens (host token, player token) kept in localStorage and stored in service-role-only secret tables. Why: no accounts needed to join with a code.
+- Live updates use realtime on `rooms` and `players`; question content is fetched from the server only when it is live. Why: hide upcoming questions and answers.
