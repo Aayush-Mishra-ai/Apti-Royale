@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Users, Zap, ShieldCheck, Trophy } from "lucide-react";
 import { createRoom, getWorldRanking, joinRoom, nextQuestion } from "@/lib/quiz.functions";
+import gokuPro from "@/assets/goku-pro.png";
 
 export const Route = createFileRoute("/")({
   loader: () => getWorldRanking(),
@@ -74,13 +75,15 @@ function Home() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 select-none">
+    <main className="arena-home relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 select-none">
       <div className="pointer-events-none absolute inset-0 hero-glow" />
       <div className="pointer-events-none absolute inset-0 ember-grid" />
       <div className="embers" aria-hidden><span style={{left:"0%",animationDuration:"8s",animationDelay:"-0.0s"}} /><span style={{left:"37%",animationDuration:"11s",animationDelay:"-1.7s"}} /><span style={{left:"74%",animationDuration:"14s",animationDelay:"-3.4s"}} /><span style={{left:"11%",animationDuration:"10s",animationDelay:"-5.1s"}} /><span style={{left:"48%",animationDuration:"13s",animationDelay:"-6.8s"}} /><span style={{left:"85%",animationDuration:"9s",animationDelay:"-8.5s"}} /><span style={{left:"22%",animationDuration:"12s",animationDelay:"-1.2s"}} /><span style={{left:"59%",animationDuration:"8s",animationDelay:"-2.9s"}} /><span style={{left:"96%",animationDuration:"11s",animationDelay:"-4.6s"}} /><span style={{left:"33%",animationDuration:"14s",animationDelay:"-6.3s"}} /><span style={{left:"70%",animationDuration:"10s",animationDelay:"-8.0s"}} /><span style={{left:"7%",animationDuration:"13s",animationDelay:"-0.7s"}} /><span style={{left:"44%",animationDuration:"9s",animationDelay:"-2.4s"}} /><span style={{left:"81%",animationDuration:"12s",animationDelay:"-4.1s"}} /></div>
       <div className="relative z-10 flex w-full max-w-[390px] flex-col gap-4 rise-in">
         {/* Hero */}
-        <header className="pt-4 pb-2 text-center">
+        <header className="arena-brand pt-4 pb-2 text-center">
+          <img className="pro-mascot" src={gokuPro} alt="Goku in a fighting stance" width={672} height={992} />
+          <div className="arena-brand-copy">
           <h1 className="float-slow font-display text-7xl leading-none tracking-tight select-none">
             APTI{" "}
             <span className="text-glow-primary bg-gradient-to-br from-primary via-accent to-neon bg-clip-text text-transparent">
@@ -90,6 +93,7 @@ function Home() {
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Live Multiplayer Logic Battles
           </p>
+          </div>
         </header>
 
         {/* Bento grid */}

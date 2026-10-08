@@ -142,39 +142,42 @@
   --sidebar-ring: oklch(0.52 0.22 27);
 }
 
-/* Pro mode — sleek high-contrast monochrome with a single ember accent */
+/* Pro mode — cyan arena surfaces with orange and electric lime accents */
 .pro {
-  --background: oklch(0.10 0.005 60);
-  --foreground: oklch(0.97 0.005 60);
-  --card: oklch(0.15 0.005 60);
-  --card-foreground: oklch(0.97 0.005 60);
-  --popover: oklch(0.15 0.005 60);
-  --popover-foreground: oklch(0.97 0.005 60);
-  --primary: oklch(0.92 0.005 60);
-  --primary-foreground: oklch(0.12 0.005 60);
-  --secondary: oklch(0.20 0.005 60);
-  --secondary-foreground: oklch(0.95 0.005 60);
-  --muted: oklch(0.20 0.005 60);
-  --muted-foreground: oklch(0.65 0.005 60);
-  --accent: oklch(0.71 0.19 55);
-  --accent-foreground: oklch(0.14 0.03 40);
-  --neon: oklch(0.84 0.17 90);
-  --neon-foreground: oklch(0.14 0.03 40);
+  --background: oklch(0.10 0.008 200);
+  --foreground: oklch(0.97 0.01 190);
+  --card: oklch(0.18 0.025 200);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.81 0.14 195);
+  --primary-foreground: oklch(0.15 0.025 200);
+  --secondary: oklch(0.23 0.025 200);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.76 0.03 195);
+  --accent: oklch(0.76 0.18 55);
+  --accent-foreground: oklch(0.15 0.025 40);
+  --neon: oklch(0.88 0.20 125);
+  --neon-foreground: oklch(0.15 0.025 125);
   --destructive: oklch(0.62 0.24 22);
   --destructive-foreground: oklch(0.98 0.005 85);
   --success: oklch(0.78 0.16 150);
   --success-foreground: oklch(0.2 0.06 150);
-  --border: oklch(0.28 0.005 60);
-  --input: oklch(0.28 0.005 60);
-  --ring: oklch(0.92 0.005 60);
-  --sidebar: oklch(0.13 0.005 60);
-  --sidebar-foreground: oklch(0.97 0.005 60);
-  --sidebar-primary: oklch(0.92 0.005 60);
-  --sidebar-primary-foreground: oklch(0.12 0.005 60);
-  --sidebar-accent: oklch(0.20 0.005 60);
-  --sidebar-accent-foreground: oklch(0.95 0.005 60);
-  --sidebar-border: oklch(0.28 0.005 60);
-  --sidebar-ring: oklch(0.92 0.005 60);
+  --border: oklch(0.36 0.055 195);
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--neon);
 }
 
 @layer base {
@@ -303,3 +306,19 @@
   .embers, .float-slow, .float-card, .rise-in > * { animation: none !important; }
   .embers { display: none; }
 }
+
+/* Isolated Pro homepage treatment; no gameplay animation or JS loop. */
+.pro-mascot { display: none; }
+.pro .arena-brand { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 174px; }
+.pro .pro-mascot { display: block; flex: 0 0 104px; width: 104px; height: 168px; object-fit: contain; animation: fighter-float 4s ease-in-out infinite; }
+.pro .arena-brand-copy { min-width: 0; text-align: left; }
+.pro .arena-brand h1 { font-size: 48px; letter-spacing: 0; animation: none; }
+.pro .arena-brand h1 span { display: block; background-image: linear-gradient(110deg, var(--primary), var(--neon)); text-shadow: none; }
+.pro .arena-brand p { letter-spacing: 0; line-height: 1.5; max-width: 190px; }
+.pro .arena-home .rounded-3xl { border-radius: 8px; background-color: var(--card); border-left-width: 3px; backdrop-filter: none; }
+.pro .arena-home .rounded-xl { border-radius: 6px; }
+.pro .arena-home .hero-glow { background: linear-gradient(150deg, color-mix(in oklab, var(--primary) 7%, transparent), transparent 60%); }
+.pro .arena-home .ember-grid { background-image: linear-gradient(color-mix(in oklab, var(--primary) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--primary) 10%, transparent) 1px, transparent 1px); background-size: 64px 64px; }
+.pro .arena-home .embers { display: none; }
+@keyframes fighter-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) { .pro .pro-mascot { animation: none; } }
