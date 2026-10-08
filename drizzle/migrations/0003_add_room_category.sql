@@ -1,0 +1,1 @@
+ALTER TABLE public.rooms ADD COLUMN category text NOT NULL DEFAULT 'mixed';

@@ -249,6 +249,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          category: string
           code: string
           created_at: string
           current_index: number
@@ -260,6 +261,7 @@ export type Database = {
           total_questions: number
         }
         Insert: {
+          category?: string
           code: string
           created_at?: string
           current_index?: number
@@ -271,6 +273,7 @@ export type Database = {
           total_questions?: number
         }
         Update: {
+          category?: string
           code?: string
           created_at?: string
           current_index?: number
