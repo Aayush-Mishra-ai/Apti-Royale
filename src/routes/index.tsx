@@ -26,6 +26,7 @@ function Home() {
   const create = useServerFn(createRoom);
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
+  const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal">("mixed");
   const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count, royale } });
+      const r = await create({ data: { seconds: 20, count, royale, category } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
