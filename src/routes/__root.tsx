@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       {
-        children: `try{if(localStorage.getItem("aptiroyale:theme")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+        children: `try{var t=localStorage.getItem("aptiroyale:theme");if(t==="light"||t==="pro")document.documentElement.classList.add(t)}catch(e){}`,
       },
     ],
   }),
