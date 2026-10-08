@@ -134,9 +134,17 @@
 
 .hero-glow {
   background:
-    radial-gradient(640px 420px at 18% 12%, color-mix(in oklab, var(--primary) 13%, transparent), transparent 70%),
-    radial-gradient(560px 420px at 84% 88%, color-mix(in oklab, var(--success) 9%, transparent), transparent 70%),
-    radial-gradient(500px 500px at 60% 40%, color-mix(in oklab, var(--chart-4) 6%, transparent), transparent 70%);
+    radial-gradient(640px 420px at 18% 12%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
+    radial-gradient(560px 420px at 84% 88%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 70%),
+    radial-gradient(500px 500px at 60% 40%, color-mix(in oklab, var(--neon) 9%, transparent), transparent 70%);
+}
+
+.text-glow-primary {
+  text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+
+.text-glow-accent {
+  text-shadow: 0 0 18px color-mix(in oklab, var(--accent) 60%, transparent);
 }
 
 @keyframes node-pulse {
