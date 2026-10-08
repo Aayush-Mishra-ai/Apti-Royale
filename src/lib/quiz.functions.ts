@@ -188,7 +188,16 @@ export const nextQuestion = createServerFn({ method: "POST" })
     const room = await getRoomByCode(data.code);
     await assertHost(room.id, data.hostToken);
     if (room.auto_control && room.status !== "lobby") return { ok: true };
-    if (room.auto_control) await prepareReviews(room.id);
+    if (room.auto_control) {
+      // Open question 1 immediately; AI reviews are only needed at the first reveal (~23s later).
+      await db
+        .from("rooms")
+        .update({ status: "question", current_index: 0, question_started_at: new Date(Date.now() + LEAD_IN_MS).toISOString(), phase_started_at: new Date().toISOString() })
+        .eq("id", room.id)
+        .eq("status", "lobby");
+      await prepareReviews(room.id);
+      return { ok: true };
+    }
     if (room.status === "question" || room.status === "finished") return { ok: true };
 
     // Royale: after every 3rd reveal, knock out the bottom 20%.
