@@ -14,9 +14,9 @@ type Session = { playerId: string; token: string; name: string };
 export const Route = createFileRoute("/play/$code")({
   head: ({ params }) => ({
     meta: [
-      { title: `Join ${params.code} — AptiRoyale` },
-      { name: "description", content: "Join a live AptiRoyale aptitude game with your room code." },
-      { property: "og:title", content: "Join a live AptiRoyale game" },
+      { title: `Join ${params.code} — Apti Royale` },
+      { name: "description", content: "Join a live Apti Royale aptitude game with your room code." },
+      { property: "og:title", content: "Join a live Apti Royale game" },
       { property: "og:description", content: "Race the timer and climb the live leaderboard." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
