@@ -86,14 +86,17 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false) {
 }
 
 export function useCountdown(q: Question | null, clockOffset: number) {
-  const [left, setLeft] = useState(0);
+  const key = q?.startedAt ?? null;
+  const [state, setState] = useState<{ key: string | null; left: number }>({ key: null, left: 0 });
   useEffect(() => {
     if (!q?.startedAt) return;
     const end = new Date(q.startedAt).getTime() + q.seconds * 1000;
-    const tick = () => setLeft(Math.max(0, (end - (Date.now() + clockOffset)) / 1000));
+    const tick = () => setState({ key: q.startedAt, left: Math.max(0, (end - (Date.now() + clockOffset)) / 1000) });
     tick();
     const t = setInterval(tick, 100);
     return () => clearInterval(t);
   }, [q?.startedAt, q?.seconds, clockOffset]);
-  return left;
+  // Until the first tick for this question, report the full duration (never a stale 0).
+  if (!q) return 0;
+  return state.key === key ? state.left : q.seconds;
 }
