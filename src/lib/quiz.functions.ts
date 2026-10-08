@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { FREEZE_SECONDS, buildReport, isEliminationPoint, pickEliminated } from "./royale";
 
 const MAX_PLAYERS = 50;
 const GRACE_MS = 1500; // network slack after the timer ends
@@ -35,6 +36,7 @@ export const createRoom = createServerFn({ method: "POST" })
       .object({
         seconds: z.number().int().min(10).max(60).default(20),
         count: z.number().int().min(5).max(20).default(10),
+        royale: z.boolean().default(false),
       })
       .parse(d)
   )
@@ -48,7 +50,7 @@ export const createRoom = createServerFn({ method: "POST" })
     for (let i = 0; i < 5 && !room; i++) {
       const { data: r } = await db
         .from("rooms")
-        .insert({ code: makeCode(), question_seconds: data.seconds, total_questions: ids.length })
+        .insert({ code: makeCode(), question_seconds: data.seconds, total_questions: ids.length, royale: data.royale })
         .select("id, code")
         .maybeSingle();
       room = r;
@@ -89,6 +91,25 @@ export const nextQuestion = createServerFn({ method: "POST" })
     const room = await getRoomByCode(data.code);
     await assertHost(room.id, data.hostToken);
     if (room.status === "question" || room.status === "finished") return { ok: true };
+
+    // Royale: after every 3rd reveal, knock out the bottom 20%.
+    if (room.royale && room.status === "reveal" && isEliminationPoint(room.current_index, room.total_questions)) {
+      const { data: alive } = await db
+        .from("players")
+        .select("id, score, created_at")
+        .eq("room_id", room.id)
+        .is("eliminated_at", null);
+      const out = pickEliminated(alive ?? []);
+      if (out.length) await db.from("players").update({ eliminated_at: room.current_index }).in("id", out);
+      const left = (alive ?? []).length - out.length;
+      await db
+        .from("rooms")
+        .update({ status: left <= 1 ? "finished" : "elimination" })
+        .eq("id", room.id)
+        .eq("status", "reveal");
+      return { ok: true };
+    }
+
     const next = room.current_index + 1;
     if (next >= room.total_questions) {
       await db.from("rooms").update({ status: "finished" }).eq("id", room.id);
@@ -122,7 +143,7 @@ export const revealAnswer = createServerFn({ method: "POST" })
 
 export const getQuestion = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ code: codeSchema, playerId: z.string().uuid().optional() }).parse(d)
+    z.object({ code: codeSchema, playerId: z.string().uuid().optional(), token: z.string().optional() }).parse(d)
   )
   .handler(async ({ data }) => {
     const db = await admin();
@@ -141,6 +162,28 @@ export const getQuestion = createServerFn({ method: "POST" })
 
     const { data: answers } = await db.from("answers").select("player_id, choice, points").eq("room_id", room.id).eq("idx", room.current_index);
     const revealed = room.status === "reveal";
+    const { data: uses } = await db
+      .from("powerup_uses")
+      .select("player_id, kind, idx, removed")
+      .eq("idx", room.current_index)
+      .in("player_id", (await db.from("players").select("id").eq("room_id", room.id)).data?.map((p) => p.id) ?? []);
+    const answeredIds = new Set((answers ?? []).map((a) => a.player_id));
+    const pendingFreeze = (uses ?? []).some((u) => u.kind === "freeze" && !answeredIds.has(u.player_id));
+
+    let power: { used: string[]; removed: number[]; double: boolean; freeze: boolean } | null = null;
+    if (data.playerId && data.token) {
+      const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
+      if (secret && secret.token === data.token) {
+        const { data: mineUses } = await db.from("powerup_uses").select("kind, idx, removed").eq("player_id", data.playerId);
+        const cur = (mineUses ?? []).filter((u) => u.idx === room.current_index);
+        power = {
+          used: (mineUses ?? []).map((u) => u.kind),
+          removed: cur.find((u) => u.kind === "fifty")?.removed ?? [],
+          double: cur.some((u) => u.kind === "double"),
+          freeze: cur.some((u) => u.kind === "freeze"),
+        };
+      }
+    }
     const distribution = q.options.map((_, i) => (answers ?? []).filter((a) => a.choice === i).length);
     const mine = data.playerId ? (answers ?? []).find((a) => a.player_id === data.playerId) : undefined;
 
@@ -160,6 +203,8 @@ export const getQuestion = createServerFn({ method: "POST" })
       correctIndex: revealed ? q.correct_index : null,
       explanation: revealed ? q.explanation : null,
       distribution: revealed ? distribution : null,
+      hostExtraSeconds: pendingFreeze ? FREEZE_SECONDS : 0,
+      power,
     };
   });
 
@@ -181,17 +226,23 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
     if (!secret || secret.token !== data.token) throw new Error("Not a player in this room.");
     if (room.status !== "question" || room.current_index !== data.idx) throw new Error("Too late — this question is closed.");
+    const { data: pl } = await db.from("players").select("eliminated_at").eq("id", data.playerId).maybeSingle();
+    if (!pl || pl.eliminated_at !== null) throw new Error("You're spectating — eliminated players can't score.");
+    const { data: myUses } = await db.from("powerup_uses").select("kind").eq("player_id", data.playerId).eq("idx", data.idx);
+    const frozen = (myUses ?? []).some((u) => u.kind === "freeze");
+    const doubled = (myUses ?? []).some((u) => u.kind === "double");
 
     // Server clock is the only clock that counts.
     const elapsed = Date.now() - new Date(room.question_started_at!).getTime();
     const limit = room.question_seconds * 1000;
-    if (elapsed > limit + GRACE_MS) throw new Error("Time's up!");
+    const myLimit = limit + (frozen ? FREEZE_SECONDS * 1000 : 0);
+    if (elapsed > myLimit + GRACE_MS) throw new Error("Time's up!");
 
     const { data: rq } = await db.from("room_questions").select("question_id").eq("room_id", room.id).eq("idx", data.idx).maybeSingle();
     const { data: q } = await db.from("questions").select("correct_index").eq("id", rq!.question_id).maybeSingle();
     const correct = q!.correct_index === data.choice;
-    const speed = Math.max(0, 1 - Math.min(elapsed, limit) / limit);
-    const points = correct ? 500 + Math.round(500 * speed) : 0;
+    const speed = Math.max(0, 1 - Math.min(elapsed, myLimit) / myLimit);
+    const points = (correct ? 500 + Math.round(500 * speed) : 0) * (doubled ? 2 : 1);
 
     const { data: ok } = await db.rpc("record_answer_v2", {
       _room: room.id,
@@ -203,4 +254,64 @@ export const submitAnswer = createServerFn({ method: "POST" })
     });
     if (ok === null || ok < 0) throw new Error("You already answered this one.");
     return { accepted: true };
+  });
+
+export const usePowerup = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        code: codeSchema,
+        playerId: z.string().uuid(),
+        token: z.string(),
+        idx: z.number().int().min(0),
+        kind: z.enum(["fifty", "double", "freeze"]),
+      })
+      .parse(d)
+  )
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const room = await getRoomByCode(data.code);
+    const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
+    if (!secret || secret.token !== data.token) throw new Error("Not a player in this room.");
+    if (room.status !== "question" || room.current_index !== data.idx) throw new Error("This question is closed.");
+    const { data: pl } = await db.from("players").select("eliminated_at, room_id").eq("id", data.playerId).maybeSingle();
+    if (!pl || pl.room_id !== room.id || pl.eliminated_at !== null) throw new Error("Spectators can't use power-ups.");
+    const elapsed = Date.now() - new Date(room.question_started_at!).getTime();
+    if (elapsed > room.question_seconds * 1000) throw new Error("Time's up!");
+    const { data: answered } = await db.from("answers").select("id").eq("player_id", data.playerId).eq("idx", data.idx).maybeSingle();
+    if (answered) throw new Error("You already answered.");
+
+    let removed: number[] = [];
+    if (data.kind === "fifty") {
+      const { data: rq } = await db.from("room_questions").select("question_id").eq("room_id", room.id).eq("idx", data.idx).maybeSingle();
+      const { data: q } = await db.from("questions").select("correct_index, options").eq("id", rq!.question_id).maybeSingle();
+      removed = q!.options
+        .map((_, i) => i)
+        .filter((i) => i !== q!.correct_index)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+    }
+    const { error } = await db.from("powerup_uses").insert({ player_id: data.playerId, kind: data.kind, idx: data.idx, removed });
+    if (error) throw new Error("You already used that power-up.");
+    return { removed };
+  });
+
+export const getReport = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ code: codeSchema, playerId: z.string().uuid(), token: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const room = await getRoomByCode(data.code);
+    if (room.status !== "finished") throw new Error("The game isn't over yet.");
+    const { data: secret } = await db.from("player_secrets").select("token").eq("player_id", data.playerId).maybeSingle();
+    if (!secret || secret.token !== data.token) throw new Error("Not a player in this room.");
+    const { data: pl } = await db.from("players").select("eliminated_at").eq("id", data.playerId).maybeSingle();
+    const lastIdx = pl?.eliminated_at ?? room.current_index;
+    const { data: rqs } = await db.from("room_questions").select("idx, question_id").eq("room_id", room.id).lte("idx", lastIdx);
+    const qids = (rqs ?? []).map((r) => r.question_id);
+    const { data: qs } = await db.from("questions").select("id, category").in("id", qids.length ? qids : [-1]);
+    const { data: ans } = await db.from("answers").select("idx, is_correct").eq("player_id", data.playerId);
+    const cat = new Map((qs ?? []).map((q) => [q.id, q.category]));
+    const ok = new Map((ans ?? []).map((a) => [a.idx, a.is_correct]));
+    const rows = (rqs ?? []).map((r) => ({ category: cat.get(r.question_id) ?? "Other", correct: ok.get(r.idx) === true }));
+    return buildReport(rows);
   });
