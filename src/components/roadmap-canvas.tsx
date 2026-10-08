@@ -80,6 +80,8 @@ export function RoadmapCanvas({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    // Let clicks on nodes pass through to their own handler (no drag capture).
+    if ((e.target as Element).closest("[data-node]")) return;
     dragRef.current = { px: e.clientX, py: e.clientY, vx: view.x, vy: view.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -234,6 +236,7 @@ function CanvasNode({ node, pos, isKnown, isFrontier, dimmed, selected, onSelect
 
   return (
     <g
+      data-node={node.id}
       transform={`translate(${pos.x},${pos.y})`}
       onClick={(e) => {
         e.stopPropagation();
