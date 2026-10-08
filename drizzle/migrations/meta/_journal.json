@@ -57,6 +57,13 @@
       "when": 1791449922688,
       "tag": "0007_first_correct_bonus",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791451325411,
+      "tag": "0008_room_difficulty",
+      "breakpoints": true
     }
   ]
 }
