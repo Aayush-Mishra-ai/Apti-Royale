@@ -87,6 +87,14 @@ export function useRoom(code: string, playerId?: string, pollAnswers = false, to
     };
   }, [code, loadPlayers, loadQuestion]);
 
+  // Backup refresh of the leaderboard in case a realtime update is missed.
+  useEffect(() => {
+    if (!room?.id || room.status === "finished") return;
+    const id = room.id;
+    const t = setInterval(() => loadPlayers(id), 2000);
+    return () => clearInterval(t);
+  }, [room?.id, room?.status, loadPlayers]);
+
   // Host polls the answered count while a question is live.
   useEffect(() => {
     if (!pollAnswers || room?.status !== "question") return;
