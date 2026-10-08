@@ -102,10 +102,10 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (s: Session) => 
 
 function Game({ code, session }: { code: string; session: Session }) {
   const { room, players, question, clockOffset, error, reloadQuestion } = useRoom(code, session.playerId, false, session.token);
+  const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const left = useCountdown(room?.status === "question" ? question : null, clockOffset, question?.power?.freeze || (local.idx === question?.idx && local.used.includes("freeze")) ? FREEZE_SECONDS : 0);
   const activate = useServerFn(activatePowerup);
   const [powerBusy, setPowerBusy] = useState(false);
-  const [local, setLocal] = useState<{ idx: number; used: PowerKind[]; removed: number[] }>({ idx: -1, used: [], removed: [] });
   const submit = useServerFn(submitAnswer);
   const [picked, setPicked] = useState<number | null>(null);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
