@@ -8,6 +8,13 @@
       "when": 1791437678052,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791440024880,
+      "tag": "0001_aptiroyale_streaks",
+      "breakpoints": true
     }
   ]
 }
