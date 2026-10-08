@@ -95,6 +95,7 @@ export type Database = {
           room_id: string
           score: number
           streak: number
+          team: string | null
         }
         Insert: {
           correct_count?: number
@@ -105,6 +106,7 @@ export type Database = {
           room_id: string
           score?: number
           streak?: number
+          team?: string | null
         }
         Update: {
           correct_count?: number
@@ -115,6 +117,7 @@ export type Database = {
           room_id?: string
           score?: number
           streak?: number
+          team?: string | null
         }
         Relationships: [
           {
@@ -258,6 +261,7 @@ export type Database = {
           question_started_at: string | null
           royale: boolean
           status: string
+          team_size: number
           total_questions: number
         }
         Insert: {
@@ -270,6 +274,7 @@ export type Database = {
           question_started_at?: string | null
           royale?: boolean
           status?: string
+          team_size?: number
           total_questions?: number
         }
         Update: {
@@ -282,6 +287,7 @@ export type Database = {
           question_started_at?: string | null
           royale?: boolean
           status?: string
+          team_size?: number
           total_questions?: number
         }
         Relationships: []

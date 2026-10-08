@@ -43,6 +43,13 @@
       "when": 1791448289632,
       "tag": "0005_add_bump_world_ranking_fn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791448358371,
+      "tag": "0006_add_teams",
+      "breakpoints": true
     }
   ]
 }
