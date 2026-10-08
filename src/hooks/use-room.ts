@@ -11,6 +11,7 @@ export type Room = {
   total_questions: number;
   question_seconds: number;
   royale: boolean;
+  category: string;
 };
 export type Player = { id: string; name: string; score: number; correct_count: number; streak: number; created_at: string; eliminated_at: number | null };
 export type Question = NonNullable<Awaited<ReturnType<typeof getQuestion>>>;

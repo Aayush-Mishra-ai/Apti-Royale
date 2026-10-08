@@ -96,6 +96,9 @@ function HostPage() {
             </p>
             <p className="mt-6 font-mono text-sm text-muted-foreground">
               {room.total_questions} questions · {room.question_seconds}s each · {players.length}/50 joined
+              <span className="ml-2 rounded bg-primary/15 px-2 py-0.5 text-primary">
+                {room.category === "mixed" ? "Mixed" : room.category}
+              </span>
               {room.royale && <span className="ml-2 rounded bg-destructive/15 px-2 py-0.5 text-destructive">Royale mode</span>}
             </p>
             <button
