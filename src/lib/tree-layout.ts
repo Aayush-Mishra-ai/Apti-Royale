@@ -1,17 +1,17 @@
-import type { RoadmapNode } from "./roadmap-schema";
+import type { RoadmapNode, RoadmapStage } from "./roadmap-schema";
 
 export const NODE_W = 196;
 export const NODE_H = 66;
-const COL_GAP = 120;
-const ROW_GAP = 28;
+const COL_GAP = 150;
+const ROW_GAP = 26;
 
 export interface Positioned {
   id: string;
   x: number; // top-left
   y: number; // top-left
-  depth: number;
-  colIndex: number;
-  colCount: number;
+  col: number;
+  rowIndex: number;
+  rowCount: number;
 }
 
 export interface TreeLayout {
@@ -20,51 +20,44 @@ export interface TreeLayout {
   height: number;
   minX: number;
   minY: number;
-  stageByDepth: Map<number, string>;
+  labelByCol: Map<number, string>;
 }
 
 /**
- * Layered DAG layout: x from dependency depth, y from barycenter ordering
- * (children pulled toward their parents) to keep edges clean.
+ * Stage-column layout: one column per roadmap stage (4-6 columns), rows within
+ * a column ordered by barycenter of their prerequisites so edges stay clean.
  */
-export function layoutRoadmap(nodes: RoadmapNode[], stageNameById: Map<string, string>): TreeLayout {
+export function layoutRoadmap(
+  nodes: RoadmapNode[],
+  stages: RoadmapStage[]
+): TreeLayout {
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const depthMemo = new Map<string, number>();
-  const visiting = new Set<string>();
-
-  const depthOf = (id: string): number => {
-    const memo = depthMemo.get(id);
-    if (memo !== undefined) return memo;
-    if (visiting.has(id)) return 0;
-    visiting.add(id);
-    let d = 0;
-    const n = byId.get(id);
-    if (n) for (const p of n.prereqIds) if (byId.has(p)) d = Math.max(d, depthOf(p) + 1);
-    visiting.delete(id);
-    depthMemo.set(id, d);
-    return d;
-  };
-  nodes.forEach((n) => depthOf(n.id));
+  const colOfStage = new Map<string, number>();
+  const nameOfStage = new Map<string, string>();
+  stages.forEach((s, i) => {
+    colOfStage.set(s.id, i);
+    nameOfStage.set(s.id, s.name);
+  });
 
   const cols = new Map<number, string[]>();
   for (const n of nodes) {
-    const d = depthMemo.get(n.id) ?? 0;
-    if (!cols.has(d)) cols.set(d, []);
-    cols.get(d)!.push(n.id);
+    const c = colOfStage.get(n.stageId) ?? 0;
+    if (!cols.has(c)) cols.set(c, []);
+    cols.get(c)!.push(n.id);
   }
-  const depths = [...cols.keys()].sort((a, b) => a - b);
+  const colNums = [...cols.keys()].sort((a, b) => a - b);
 
   const rowOf = new Map<string, number>();
-  for (let iter = 0; iter < 8; iter++) {
-    for (const d of depths) {
-      const col = cols.get(d)!;
-      const scored = col.map((id) => {
+  for (let iter = 0; iter < 10; iter++) {
+    for (const c of colNums) {
+      const col = cols.get(c)!;
+      const scored = col.map((id, i) => {
         const n = byId.get(id)!;
         const parentRows = n.prereqIds.filter((p) => rowOf.has(p)).map((p) => rowOf.get(p)!);
         const score = parentRows.length
           ? parentRows.reduce((a, b) => a + b, 0) / parentRows.length
-          : col.indexOf(id) + iter * 0; // stable fallback keeps initial order
-        return { id, score, fallback: col.indexOf(id) };
+          : i;
+        return { id, score, fallback: i };
       });
       scored.sort((a, b) => (a.score === b.score ? a.fallback - b.fallback : a.score - b.score));
       scored.forEach((s, i) => rowOf.set(s.id, i));
@@ -72,26 +65,25 @@ export function layoutRoadmap(nodes: RoadmapNode[], stageNameById: Map<string, s
   }
 
   const positions = new Map<string, Positioned>();
-  const stageByDepth = new Map<number, string>();
+  const labelByCol = new Map<number, string>();
 
-  for (const d of depths) {
-    const col = cols.get(d)!;
+  for (const c of colNums) {
+    const col = cols.get(c)!;
     const rowCount = col.length;
     col.forEach((id) => {
       const row = rowOf.get(id) ?? 0;
       positions.set(id, {
         id,
-        x: d * (NODE_W + COL_GAP),
+        x: c * (NODE_W + COL_GAP),
         y: (row - (rowCount - 1) / 2) * (NODE_H + ROW_GAP),
-        depth: d,
-        colIndex: row,
-        colCount: rowCount,
+        col: c,
+        rowIndex: row,
+        rowCount,
       });
     });
-    // Stage label for the column = stage of its first node (nodes are stage-ordered by the AI).
     const firstId: string | undefined = col[0];
     const first = firstId ? byId.get(firstId) : undefined;
-    if (first) stageByDepth.set(d, stageNameById.get(first.stageId) ?? "");
+    if (first) labelByCol.set(c, nameOfStage.get(first.stageId) ?? "");
   }
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -103,5 +95,5 @@ export function layoutRoadmap(nodes: RoadmapNode[], stageNameById: Map<string, s
   }
   if (!positions.size) { minX = 0; minY = 0; maxX = NODE_W; maxY = NODE_H; }
 
-  return { positions, width: maxX - minX, height: maxY - minY, minX, minY, stageByDepth };
+  return { positions, width: maxX - minX, height: maxY - minY, minX, minY, labelByCol };
 }
