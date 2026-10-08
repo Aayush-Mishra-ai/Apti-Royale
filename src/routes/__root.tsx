@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Live multiplayer aptitude quiz for placement prep.",
       },
-      { property: "og:title", content: "AptiRoyale — Live Aptitude Quiz" },
+      { property: "og:title", content: "Apti Royale — Live Aptitude Quiz" },
       {
         property: "og:description",
         content: "Live multiplayer aptitude quiz for placement prep.",
