@@ -29,6 +29,7 @@ function Home() {
   const [code, setCode] = useState("");
   const [count, setCount] = useState(10);
   const [category, setCategory] = useState<"mixed" | "Quant" | "Logical" | "Verbal">("mixed");
+  const [teamSize, setTeamSize] = useState<1 | 2 | 4>(1);
   const [royale, setRoyale] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ function Home() {
     setLoading(true);
     setError(null);
     try {
-      const r = await create({ data: { seconds: 20, count, royale, category } });
+      const r = await create({ data: { seconds: 20, count, royale, category, teamSize } });
       localStorage.setItem(`aptiroyale:host:${r.code}`, r.hostToken);
       navigate({ to: "/host/$code", params: { code: r.code } });
     } catch (e) {
@@ -140,6 +141,27 @@ function Home() {
                   {[5, 10, 15, 20].map((n) => (
                     <option key={n} value={n} className="bg-card text-foreground">
                       {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/50 p-3">
+                <label htmlFor="tmode" className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+                  Teams
+                </label>
+                <select
+                  id="tmode"
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(Number(e.target.value) as 1 | 2 | 4)}
+                  className="cursor-pointer bg-transparent font-bold text-neon outline-none"
+                >
+                  {[
+                    [1, "Solo"],
+                    [2, "Duos"],
+                    [4, "Squads of 4"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v} className="bg-card text-foreground">
+                      {l}
                     </option>
                   ))}
                 </select>
