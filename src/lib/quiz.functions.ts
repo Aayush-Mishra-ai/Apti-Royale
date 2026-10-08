@@ -37,12 +37,15 @@ export const createRoom = createServerFn({ method: "POST" })
         seconds: z.number().int().min(10).max(60).default(20),
         count: z.number().int().min(5).max(20).default(10),
         royale: z.boolean().default(false),
+        category: z.enum(["mixed", "Quant", "Logical", "Verbal"]).default("mixed"),
       })
       .parse(d)
   )
   .handler(async ({ data }) => {
     const db = await admin();
-    const { data: qs } = await db.from("questions").select("id");
+    let qq = db.from("questions").select("id");
+    if (data.category !== "mixed") qq = qq.eq("category", data.category);
+    const { data: qs } = await qq;
     const ids = (qs ?? []).map((q) => q.id).sort(() => Math.random() - 0.5).slice(0, data.count);
     if (ids.length === 0) throw new Error("No questions available");
 
@@ -50,7 +53,13 @@ export const createRoom = createServerFn({ method: "POST" })
     for (let i = 0; i < 5 && !room; i++) {
       const { data: r } = await db
         .from("rooms")
-        .insert({ code: makeCode(), question_seconds: data.seconds, total_questions: ids.length, royale: data.royale })
+        .insert({
+          code: makeCode(),
+          question_seconds: data.seconds,
+          total_questions: ids.length,
+          royale: data.royale,
+          category: data.category,
+        })
         .select("id, code")
         .maybeSingle();
       room = r;
