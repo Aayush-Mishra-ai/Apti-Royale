@@ -74,6 +74,7 @@ function HostPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
+      {lead > 0 && <GetReady left={lead} />}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link to="/" className="text-lg font-bold text-foreground">Apti<span className="text-primary">Royale</span></Link>
         {room.royale && room.status !== "lobby" && (

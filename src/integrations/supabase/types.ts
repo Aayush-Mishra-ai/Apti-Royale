@@ -350,6 +350,17 @@ export type Database = {
         }
         Returns: number
       }
+      record_answer_v3: {
+        Args: {
+          _choice: number
+          _correct: boolean
+          _idx: number
+          _player: string
+          _points: number
+          _room: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
