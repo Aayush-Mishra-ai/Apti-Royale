@@ -15,7 +15,7 @@ export function ThemeToggle() {
   }, []);
 
   const toggle = () => {
-    const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? "dark";
     setTheme(next);
     document.documentElement.classList.toggle("light", next === "light");
     document.documentElement.classList.toggle("pro", next === "pro");
